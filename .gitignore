@@ -7,3 +7,4 @@ node_modules/
 public/
 router.php
 simulate.php
+make_icons.php
