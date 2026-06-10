@@ -22,28 +22,52 @@ Ein webbasiertes Tipp-Spiel für die FIFA Weltmeisterschaft 2026 (USA · Kanada 
 
 | Komponente | Technologie |
 |---|---|
-| Backend | Node.js + Express |
-| Datenbank | SQLite via `node-sqlite3-wasm` (WebAssembly, kein nativer Compile) |
-| Passwort | bcrypt via `bcryptjs` |
+| Backend | PHP 8+ mit PDO SQLite |
+| Datenbank | SQLite (in `data/wm2026.db`, automatisch angelegt) |
+| Passwort | PHP `password_hash()` / `password_verify()` (bcrypt) |
 | Frontend | Vanilla JS, kein Framework |
 | Stil | CSS Custom Properties, `backdrop-filter`, Frutiger Aero |
 | PWA | Web App Manifest + Service Worker |
+| Hosting | Apache mit `.htaccess` Rewrite (z.B. Strato Webhosting Plus) |
 
 ## Voraussetzungen
 
-- Node.js ≥ 18 (getestet auf Node 26, arm64 macOS)
-- npm
+- PHP ≥ 8.0 mit `pdo_sqlite`-Extension
+- Apache mit `mod_rewrite`
 
-## Installation
+## Deployment auf Strato (per FTP)
 
-```bash
-git clone <repo>
-cd wm2026
-npm install
-npm start
+Die Dateien liegen direkt im Web-Root — kein `public/`-Unterverzeichnis nötig.
+
+Folgende Dateien/Verzeichnisse per FTP hochladen:
+
+```
+index.html
+app.js
+style.css
+manifest.json
+sw.js
+api.php
+.htaccess
+icons/
+data/                ← Verzeichnis anlegen (leer hochladen)
 ```
 
-Die App läuft auf [http://localhost:3000](http://localhost:3000).
+> **Wichtig:** Das Verzeichnis `data/` muss für den Webserver schreibbar sein (chmod 755 oder 775, je nach Strato-Konfiguration).
+
+Die SQLite-Datenbank wird beim ersten Aufruf automatisch unter `data/wm2026.db` angelegt und mit allen 104 Spielen befüllt.
+
+## Lokal testen (PHP Built-in Server)
+
+```bash
+cd wm2026
+php -S localhost:3000
+```
+
+Die App ist dann unter [http://localhost:3000](http://localhost:3000) erreichbar. Das `data/`-Verzeichnis wird automatisch erstellt.
+
+> **Hinweis:** Der PHP Built-in Server kennt kein `.htaccess`. Für lokale Tests muss `api.php` direkt als `http://localhost:3000/api.php/matches` aufgerufen werden, **oder** man nutzt Apache/nginx lokal.  
+> Im Frontend (`app.js`) zeigt `BASE_URL` auf `/api` — für den Built-in Server ggf. temporär auf `/api.php` ändern.
 
 ## Als PWA installieren
 
@@ -66,14 +90,14 @@ Die App öffnet sich dann ohne Browser-Chrome als eigenständige App. Die App-Sh
 - Ergebnisse eintragen und löschen
 - Verlängerung (n.V.) und Elfmeterschießen (n.E.) markieren
 - KO-Teamnamen manuell anpassen (Fallback falls Auto-Fill nicht greift)
-- Bracket manuell neu berechnen: `POST /api/admin/update-bracket`
+- Bracket manuell neu berechnen via Admin-Button in der App
 
 ## Sicherheitshinweise (Prototype)
 
 - Das Admin-Passwort wird als bcrypt-Hash in der SQLite-DB gespeichert
-- Die App ist für den **lokalen Betrieb im Heimnetz** ausgelegt
-- Kein HTTPS, keine Rate-Limiting, keine Session-Tokens
-- Nicht für den öffentlichen Internet-Einsatz geeignet
+- Die App ist für den **privaten Gebrauch im bekannten Nutzerkreis** ausgelegt
+- Kein Rate-Limiting, keine Session-Tokens
+- Nicht für den öffentlichen Internet-Einsatz mit unbekannten Nutzern ausgelegt
 
 ## Lizenz
 

@@ -1,0 +1,24 @@
+Options -Indexes
+
+RewriteEngine On
+
+# Route /api/* to api.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/(.*)$ api.php [QSA,L]
+
+# Protect data directory
+RewriteRule ^data/ - [F,L]
+
+# Service Worker scope
+<Files "sw.js">
+  Header set Service-Worker-Allowed "/"
+</Files>
+
+# Cache static assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css             "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+  ExpiresByType image/png            "access plus 1 month"
+</IfModule>
