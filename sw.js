@@ -1,5 +1,6 @@
 const CACHE = 'wm2026-v1';
-const SHELL = ['/', '/style.css', '/app.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
+const BASE  = self.registration.scope.replace(/\/$/, '');
+const SHELL = ['', '/style.css', '/app.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'].map(p => BASE + (p || '/'));
 
 // Install: cache app shell
 self.addEventListener('install', e => {
@@ -21,7 +22,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  if (url.pathname.startsWith('/api/')) {
+  if (url.pathname.includes('/api/') || url.pathname.includes('/api.php')) {
     // API: network first, no caching
     e.respondWith(fetch(e.request).catch(() =>
       new Response(JSON.stringify({ error: 'Offline' }), {

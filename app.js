@@ -28,7 +28,7 @@ async function init() {
     showModal();
   }
 
-  navItems = await api('/api/nav');
+  navItems = await api('api/nav');
   renderSpieltageNav();
   await loadScores();
 }
@@ -61,7 +61,7 @@ function selectPlayer(p) {
 
 async function submitAdminPassword() {
   const pw = document.getElementById('admin-pw-input').value;
-  const res = await fetch('/api/result', {
+  const res = await fetch('api/result', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ match_id: 0, home_score: 0, away_score: 0, password: pw }),
@@ -203,8 +203,8 @@ async function loadMatches(tab) {
   container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Lädt…</div>';
 
   let url;
-  if (tab.round === 'gruppe') url = `/api/matches?spieltag=${tab.spieltag}`;
-  else                        url = `/api/matches?round=${tab.round}`;
+  if (tab.round === 'gruppe') url = `api/matches?spieltag=${tab.spieltag}`;
+  else                        url = `api/matches?round=${tab.round}`;
 
   const matches = await api(url);
   renderMatches(matches, container);
@@ -379,7 +379,7 @@ async function savePrediction(matchId) {
 
   if (h === '' || a === '') { showToast('Bitte beide Tore eingeben', 'error'); return; }
 
-  const res = await api('/api/predict', 'POST', {
+  const res = await api('api/predict', 'POST', {
     match_id: matchId,
     player,
     home_score: parseInt(h),
@@ -410,7 +410,7 @@ async function saveResult(matchId) {
     : null;
   if (pen && !penWinner) { showToast('Bitte Elfmeter-Sieger auswählen', 'error'); return; }
 
-  const res = await api('/api/result', 'POST', {
+  const res = await api('api/result', 'POST', {
     match_id: matchId,
     home_score: parseInt(h),
     away_score: parseInt(a),
@@ -427,7 +427,7 @@ async function saveResult(matchId) {
 }
 
 async function deleteResult(matchId) {
-  const res = await fetch(`/api/result/${matchId}`, {
+  const res = await fetch(`api/result/${matchId}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password: adminPassword }),
@@ -443,7 +443,7 @@ async function saveTeams(matchId) {
   const ht = document.getElementById(`th-${matchId}`)?.value;
   const at = document.getElementById(`ta-${matchId}`)?.value;
 
-  const res = await fetch(`/api/match/${matchId}/teams`, {
+  const res = await fetch(`api/match/${matchId}/teams`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ home_team: ht, away_team: at, password: adminPassword }),
@@ -460,7 +460,7 @@ function refreshTab() {
 
 /* ── Scores ─────────────────────────────────────────────────────── */
 async function loadScores() {
-  const data = await api('/api/standings');
+  const data = await api('api/standings');
   document.getElementById('score-david').textContent = data.totals.david;
   document.getElementById('score-frank').textContent = data.totals.frank;
 }
@@ -469,7 +469,7 @@ async function loadScores() {
 async function loadGroups() {
   const container = document.getElementById('gruppen-content');
   container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Lädt…</div>';
-  const groups = await api('/api/groups');
+  const groups = await api('api/groups');
   container.innerHTML = '';
 
   Object.keys(groups).sort().forEach(g => {
@@ -521,7 +521,7 @@ async function loadGroups() {
 async function loadRangliste() {
   const container = document.getElementById('rangliste-content');
   container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Lädt…</div>';
-  const data = await api('/api/standings');
+  const data = await api('api/standings');
 
   const { totals, details } = data;
   const leader = totals.david > totals.frank ? 'david' : totals.frank > totals.david ? 'frank' : null;
@@ -718,7 +718,7 @@ async function changeAdminPassword() {
   if (nw !== conf) { msg.textContent = '❌ Passwörter stimmen nicht überein'; return; }
   if (nw.length < 6) { msg.textContent = '❌ Mindestens 6 Zeichen'; return; }
 
-  const res = await fetch('/api/admin/change-password', {
+  const res = await fetch('api/admin/change-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password: cur, new_password: nw })

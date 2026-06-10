@@ -1,6 +1,7 @@
 Options -Indexes
 
 RewriteEngine On
+RewriteBase /wm2006/
 
 # Route /api/* to api.php
 RewriteCond %{REQUEST_FILENAME} !-f
