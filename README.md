@@ -28,18 +28,18 @@ Ein webbasiertes Tipp-Spiel für die FIFA Weltmeisterschaft 2026 (USA · Kanada 
 | Frontend | Vanilla JS, kein Framework |
 | Stil | CSS Custom Properties, `backdrop-filter`, Frutiger Aero |
 | PWA | Web App Manifest + Service Worker |
-| Hosting | Apache mit `.htaccess` Rewrite (z.B. Strato Webhosting Plus) |
+| Hosting | Apache mit `.htaccess` Rewrite |
 
 ## Voraussetzungen
 
 - PHP ≥ 8.0 mit `pdo_sqlite`-Extension
 - Apache mit `mod_rewrite`
 
-## Deployment auf Strato (per FTP)
+## Deployment (Apache Shared Hosting)
 
 Die Dateien liegen direkt im Web-Root — kein `public/`-Unterverzeichnis nötig.
 
-Folgende Dateien/Verzeichnisse per FTP hochladen:
+Folgende Dateien/Verzeichnisse per SFTP hochladen:
 
 ```
 index.html
@@ -53,7 +53,13 @@ icons/
 data/                ← Verzeichnis anlegen (leer hochladen)
 ```
 
-> **Wichtig:** Das Verzeichnis `data/` muss für den Webserver schreibbar sein (chmod 755 oder 775, je nach Strato-Konfiguration).
+Falls die App in einem Unterverzeichnis liegt (z.B. `/wm2026/`), muss `RewriteBase` in `.htaccess` entsprechend angepasst werden:
+
+```apache
+RewriteBase /wm2026/
+```
+
+> **Wichtig:** Das Verzeichnis `data/` muss für den Webserver schreibbar sein (chmod 755 oder 775).
 
 Die SQLite-Datenbank wird beim ersten Aufruf automatisch unter `data/wm2026.db` angelegt und mit allen 104 Spielen befüllt.
 
@@ -66,8 +72,7 @@ php -S localhost:3000
 
 Die App ist dann unter [http://localhost:3000](http://localhost:3000) erreichbar. Das `data/`-Verzeichnis wird automatisch erstellt.
 
-> **Hinweis:** Der PHP Built-in Server kennt kein `.htaccess`. Für lokale Tests muss `api.php` direkt als `http://localhost:3000/api.php/matches` aufgerufen werden, **oder** man nutzt Apache/nginx lokal.  
-> Im Frontend (`app.js`) zeigt `BASE_URL` auf `/api` — für den Built-in Server ggf. temporär auf `/api.php` ändern.
+> **Hinweis:** Der PHP Built-in Server kennt kein `.htaccess` — ein `router.php` übernimmt das Routing lokal. Mit `php -S localhost:3000 router.php` starten.
 
 ## Als PWA installieren
 
