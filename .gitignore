@@ -4,3 +4,5 @@ data/
 *.db-wal
 .DS_Store
 node_modules/
+public/
+router.php
