@@ -1,6 +1,6 @@
 {
-  "name": "WM 2026 Tippspiel",
-  "short_name": "Tippspiel",
+  "name": "Tipp WM26",
+  "short_name": "Tipp WM26",
   "description": "FIFA WM 2026 Tippspiel für David & Frank",
   "start_url": "./",
   "display": "standalone",
