@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DEFAULT_PASSWORD = 'wm2026admin';
 
-const db = new Database(path.join(__dirname, 'wm2026.db'));
+const db = new Database(process.env.DB_PATH || path.join(__dirname, 'wm2026.db'));
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
