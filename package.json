@@ -1,0 +1,15 @@
+{
+  "name": "wm2026-tippspiel",
+  "version": "1.0.0",
+  "description": "WM 2026 Tippspiel für David & Frank",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^9.4.3",
+    "express": "^4.22.2",
+    "node-sqlite3-wasm": "^0.8.58"
+  }
+}
