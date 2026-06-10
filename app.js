@@ -355,7 +355,12 @@ function renderAdminForm(m, hasResult, isKO) {
       ${isKO ? `
       <div class="admin-checks">
         <label><input type="checkbox" id="et-${m.id}" ${et} /> Verlängerung</label>
-        <label><input type="checkbox" id="pen-${m.id}" ${pen} /> Elfmeter</label>
+        <label><input type="checkbox" id="pen-${m.id}" ${pen} onchange="togglePenWinner(${m.id})" /> Elfmeter</label>
+        <div id="pen-winner-${m.id}" class="pen-winner-row" style="display:${pen ? 'flex' : 'none'}">
+          <span style="font-size:.75rem;opacity:.7">Sieger n.E.:</span>
+          <label><input type="radio" name="pw-${m.id}" value="home" ${m.penalty_winner === 'home' ? 'checked' : ''} /> ${m.home_team}</label>
+          <label><input type="radio" name="pw-${m.id}" value="away" ${m.penalty_winner === 'away' ? 'checked' : ''} /> ${m.away_team}</label>
+        </div>
       </div>` : ''}
       <div class="admin-checks" style="margin-top:6px;">
         <span class="admin-form-label" style="font-size:.72rem">Teams:</span>
@@ -386,6 +391,12 @@ async function savePrediction(matchId) {
   refreshTab();
 }
 
+function togglePenWinner(matchId) {
+  const pen = document.getElementById(`pen-${matchId}`)?.checked;
+  const row = document.getElementById(`pen-winner-${matchId}`);
+  if (row) row.style.display = pen ? 'flex' : 'none';
+}
+
 async function saveResult(matchId) {
   const h = document.getElementById(`rh-${matchId}`)?.value;
   const a = document.getElementById(`ra-${matchId}`)?.value;
@@ -394,12 +405,18 @@ async function saveResult(matchId) {
 
   if (h === '' || a === '') { showToast('Bitte beide Tore eingeben', 'error'); return; }
 
+  const penWinner = pen
+    ? (document.querySelector(`input[name="pw-${matchId}"]:checked`)?.value ?? null)
+    : null;
+  if (pen && !penWinner) { showToast('Bitte Elfmeter-Sieger auswählen', 'error'); return; }
+
   const res = await api('/api/result', 'POST', {
     match_id: matchId,
     home_score: parseInt(h),
     away_score: parseInt(a),
     extra_time: et,
     penalties: pen,
+    penalty_winner: penWinner,
     password: adminPassword,
   });
 

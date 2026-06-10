@@ -31,8 +31,9 @@ $db->exec("
     kickoff     TEXT    NOT NULL,
     home_score  INTEGER,
     away_score  INTEGER,
-    extra_time  INTEGER DEFAULT 0,
-    penalties   INTEGER DEFAULT 0
+    extra_time       INTEGER DEFAULT 0,
+    penalties        INTEGER DEFAULT 0,
+    penalty_winner   TEXT
   );
   CREATE TABLE IF NOT EXISTS predictions (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -207,8 +208,9 @@ function nm(array $m): array {
     $m['spieltag']   = $m['spieltag'] !== null ? (int)$m['spieltag'] : null;
     $m['home_score'] = $m['home_score'] !== null ? (int)$m['home_score'] : null;
     $m['away_score'] = $m['away_score'] !== null ? (int)$m['away_score'] : null;
-    $m['extra_time'] = (int)($m['extra_time'] ?? 0);
-    $m['penalties']  = (int)($m['penalties']  ?? 0);
+    $m['extra_time']     = (int)($m['extra_time'] ?? 0);
+    $m['penalties']      = (int)($m['penalties']  ?? 0);
+    $m['penalty_winner'] = $m['penalty_winner'] ?? null;
     return $m;
 }
 
@@ -278,8 +280,6 @@ function computeGroupTable(PDO $db, string $gruppe): array {
 }
 
 function isGroupComplete(PDO $db, string $gruppe): bool {
-    $total = (int)$db->prepare("SELECT COUNT(*) FROM matches WHERE round='gruppe' AND gruppe=?")->execute([$gruppe]) ? $db->query("SELECT COUNT(*) FROM matches WHERE round='gruppe' AND gruppe='$gruppe'")->fetchColumn() : 0;
-    // safer:
     $s1 = $db->prepare("SELECT COUNT(*) FROM matches WHERE round='gruppe' AND gruppe=?"); $s1->execute([$gruppe]); $total = (int)$s1->fetchColumn();
     $s2 = $db->prepare("SELECT COUNT(*) FROM matches WHERE round='gruppe' AND gruppe=? AND home_score IS NOT NULL"); $s2->execute([$gruppe]); $done = (int)$s2->fetchColumn();
     return $total > 0 && $total === $done;
@@ -332,7 +332,11 @@ function propagateKOWinners(PDO $db): void {
         foreach ($src as $idx => $m) {
             if ($m['home_score'] === null) continue;
             $hS = (int)$m['home_score']; $aS = (int)$m['away_score'];
-            $winner = $hS > $aS ? $m['home_team'] : ($aS > $hS ? $m['away_team'] : null);
+            if ($hS > $aS) $winner = $m['home_team'];
+            elseif ($aS > $hS) $winner = $m['away_team'];
+            elseif ($m['penalty_winner'] === 'home') $winner = $m['home_team'];
+            elseif ($m['penalty_winner'] === 'away') $winner = $m['away_team'];
+            else $winner = null;
             if (!$winner) continue;
             $dIdx = (int)floor($idx / 2);
             $side = $idx % 2 === 0 ? 'home' : 'away';
@@ -351,8 +355,11 @@ function propagateKOWinners(PDO $db): void {
     foreach ($hf as $idx => $m) {
         if ($m['home_score'] === null) continue;
         $hS = (int)$m['home_score']; $aS = (int)$m['away_score'];
-        $winner = $hS > $aS ? $m['home_team'] : ($aS > $hS ? $m['away_team'] : null);
-        $loser  = $hS > $aS ? $m['away_team'] : ($aS > $hS ? $m['home_team'] : null);
+        if ($hS > $aS)                       { $winner = $m['home_team']; $loser = $m['away_team']; }
+        elseif ($aS > $hS)                   { $winner = $m['away_team']; $loser = $m['home_team']; }
+        elseif ($m['penalty_winner']==='home'){ $winner = $m['home_team']; $loser = $m['away_team']; }
+        elseif ($m['penalty_winner']==='away'){ $winner = $m['away_team']; $loser = $m['home_team']; }
+        else { $winner = null; $loser = null; }
         $side   = $idx === 0 ? 'home' : 'away';
         if ($winner && isset($finale[0])) {
             if ($side==='home' && isPlaceholder($finale[0]['home_team'])) $db->prepare("UPDATE matches SET home_team=? WHERE id=?")->execute([$winner,$finale[0]['id']]);
@@ -445,8 +452,13 @@ if ($method === 'POST' && $path === '/result') {
     if (!checkPassword($db, $body['password'] ?? '')) jsonOut(['error' => 'Falsches Admin-Passwort'], 401);
     $match = $db->prepare("SELECT id FROM matches WHERE id=?"); $match->execute([(int)($body['match_id'] ?? 0)]); $match = $match->fetch();
     if (!$match) jsonOut(['error' => 'Spiel nicht gefunden'], 404);
-    $db->prepare("UPDATE matches SET home_score=?,away_score=?,extra_time=?,penalties=? WHERE id=?")
-        ->execute([(int)$body['home_score'], (int)$body['away_score'], !empty($body['extra_time']) ? 1 : 0, !empty($body['penalties']) ? 1 : 0, (int)$body['match_id']]);
+    $penWinner = null;
+    if (!empty($body['penalties'])) {
+        $pw = $body['penalty_winner'] ?? null;
+        if (in_array($pw, ['home','away'])) $penWinner = $pw;
+    }
+    $db->prepare("UPDATE matches SET home_score=?,away_score=?,extra_time=?,penalties=?,penalty_winner=? WHERE id=?")
+        ->execute([(int)$body['home_score'], (int)$body['away_score'], !empty($body['extra_time']) ? 1 : 0, !empty($body['penalties']) ? 1 : 0, $penWinner, (int)$body['match_id']]);
     updateBracket($db);
     $m = $db->prepare("SELECT * FROM matches WHERE id=?"); $m->execute([(int)$body['match_id']]); $m = $m->fetch();
     jsonOut(['success' => true, 'match' => enrichMatch($db, $m)]);
@@ -456,7 +468,7 @@ if ($method === 'POST' && $path === '/result') {
 
 if ($method === 'DELETE' && preg_match('#^/result/(\d+)$#', $path, $matches)) {
     if (!checkPassword($db, $body['password'] ?? '')) jsonOut(['error' => 'Falsches Admin-Passwort'], 401);
-    $db->prepare("UPDATE matches SET home_score=NULL,away_score=NULL,extra_time=0,penalties=0 WHERE id=?")->execute([(int)$matches[1]]);
+    $db->prepare("UPDATE matches SET home_score=NULL,away_score=NULL,extra_time=0,penalties=0,penalty_winner=NULL WHERE id=?")->execute([(int)$matches[1]]);
     jsonOut(['success' => true]);
 }
 

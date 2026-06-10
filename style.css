@@ -592,6 +592,7 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
 .admin-result-form .form-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .admin-form-label { font-size: .75rem; color: var(--gold-text); font-weight: 700; }
 .admin-checks { display: flex; gap: 14px; margin-top: 6px; flex-wrap: wrap; }
+.pen-winner-row { gap: 10px; align-items: center; margin-top: 4px; flex-wrap: wrap; font-size: .78rem; }
 .admin-checks label {
   font-size: .75rem; color: var(--text2);
   display: flex; align-items: center; gap: 4px; cursor: pointer;
