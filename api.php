@@ -194,13 +194,6 @@ if ((int)$cnt === 0) {
     $db->commit();
 }
 
-// Migration: collapse spieltage 1–6 → 1, 7–9 → 2, 10 → 3
-$maxST = (int)$db->query("SELECT MAX(spieltag) FROM matches WHERE round='gruppe'")->fetchColumn();
-if ($maxST > 3) {
-    $db->exec("UPDATE matches SET spieltag=1 WHERE round='gruppe' AND spieltag BETWEEN 1 AND 6");
-    $db->exec("UPDATE matches SET spieltag=2 WHERE round='gruppe' AND spieltag BETWEEN 7 AND 9");
-    $db->exec("UPDATE matches SET spieltag=3 WHERE round='gruppe' AND spieltag=10");
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
