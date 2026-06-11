@@ -326,9 +326,9 @@ function renderInputArea(m, isLocked, hasResult, isKO) {
     <div class="pred-form">
       <span class="pred-form-label">Dein Tipp${myPred ? ' (ändern)' : ''}:</span>
       <div class="score-inputs">
-        <input type="number" class="score-input" id="h-${m.id}" value="${h}" min="0" max="20" placeholder="0" />
+        <input type="number" class="score-input" id="h-${m.id}" value="${h}" min="0" max="20" placeholder="–" />
         <span class="score-sep-colon">:</span>
-        <input type="number" class="score-input" id="a-${m.id}" value="${a}" min="0" max="20" placeholder="0" />
+        <input type="number" class="score-input" id="a-${m.id}" value="${a}" min="0" max="20" placeholder="–" />
       </div>
       <button class="btn-save" onclick="savePrediction(${m.id})">Tippen</button>
     </div>`;
@@ -345,9 +345,9 @@ function renderAdminForm(m, hasResult, isKO) {
       <div class="form-row">
         <span class="admin-form-label">Ergebnis:</span>
         <div class="score-inputs">
-          <input type="number" class="score-input" id="rh-${m.id}" value="${h}" min="0" max="20" placeholder="0" />
+          <input type="number" class="score-input" id="rh-${m.id}" value="${h}" min="0" max="20" placeholder="–" />
           <span class="score-sep-colon">:</span>
-          <input type="number" class="score-input" id="ra-${m.id}" value="${a}" min="0" max="20" placeholder="0" />
+          <input type="number" class="score-input" id="ra-${m.id}" value="${a}" min="0" max="20" placeholder="–" />
         </div>
         <button class="btn-save" onclick="saveResult(${m.id})">Speichern</button>
         ${hasResult ? `<button class="btn-admin" style="padding:8px 10px;font-size:.78rem;" onclick="deleteResult(${m.id})">✕</button>` : ''}
@@ -387,8 +387,25 @@ async function savePrediction(matchId) {
   });
 
   if (res.error) { showToast(res.error, 'error'); return; }
+
+  // Update only this player's pred-cell in the DOM — no full reload
+  const cell = document.querySelector(`.match-card .pred-cell .pred-label.${player}`)
+    ? [...document.querySelectorAll('.match-card')]
+        .find(card => card.querySelector(`#h-${matchId}`))
+        ?.querySelector(`.pred-cell .pred-label.${player}`)
+        ?.closest('.pred-cell')
+    : null;
+  if (cell) {
+    cell.querySelector('.pred-score').textContent = `${parseInt(h)} : ${parseInt(a)}`;
+  }
+
+  // Update label to "(ändern)"
+  const label = document.querySelector(`#h-${matchId}`)
+    ?.closest('.pred-form')
+    ?.querySelector('.pred-form-label');
+  if (label) label.textContent = 'Dein Tipp (ändern):';
+
   showToast('Tipp gespeichert ✓', 'success');
-  refreshTab();
 }
 
 function togglePenWinner(matchId) {
@@ -422,7 +439,7 @@ async function saveResult(matchId) {
 
   if (res.error) { showToast(res.error, 'error'); return; }
   showToast('Ergebnis gespeichert ✓', 'success');
-  refreshTab();
+  replaceMatchCard(matchId, res.match);
   loadScores();
 }
 
@@ -435,8 +452,22 @@ async function deleteResult(matchId) {
   const data = await res.json();
   if (data.error) { showToast(data.error, 'error'); return; }
   showToast('Ergebnis gelöscht', 'success');
-  refreshTab();
+  // Re-fetch this match to get clean state, then replace card
+  const round = activeTab?.round === 'gruppe' ? null : activeTab?.round;
+  const param = round ? `round=${round}` : `spieltag=${activeTab?.spieltag}`;
+  const matches = await api(`api/matches?${param}`);
+  const updated = matches?.find(m => m.id === matchId);
+  if (updated) replaceMatchCard(matchId, updated);
   loadScores();
+}
+
+function replaceMatchCard(matchId, matchData) {
+  const old = [...document.querySelectorAll('.match-card')]
+    .find(c => c.querySelector(`#rh-${matchId}`) || c.querySelector(`#h-${matchId}`));
+  if (!old) { refreshTab(); return; }
+  const idx = [...old.parentElement.children].indexOf(old);
+  const fresh = renderMatchCard(matchData, idx);
+  old.replaceWith(fresh);
 }
 
 async function saveTeams(matchId) {
