@@ -1,3 +1,21 @@
+/* ── Flags ──────────────────────────────────────────────────────── */
+const FLAGS = {
+  'Ägypten':'🇪🇬','Algerien':'🇩🇿','Argentinien':'🇦🇷','Australien':'🇦🇺',
+  'Belgien':'🇧🇪','Bosnien-Herzegowina':'🇧🇦','Brasilien':'🇧🇷',
+  'Curaçao':'🇨🇼','DR Kongo':'🇨🇩','Deutschland':'🇩🇪',
+  'Ecuador':'🇪🇨','Elfenbeinküste':'🇨🇮','England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  'Frankreich':'🇫🇷','Ghana':'🇬🇭','Haiti':'🇭🇹','Irak':'🇮🇶','Iran':'🇮🇷',
+  'Japan':'🇯🇵','Jordanien':'🇯🇴','Kanada':'🇨🇦','Kap Verde':'🇨🇻',
+  'Katar':'🇶🇦','Kolumbien':'🇨🇴','Kroatien':'🇭🇷','Marokko':'🇲🇦',
+  'Mexiko':'🇲🇽','Neuseeland':'🇳🇿','Niederlande':'🇳🇱','Norwegen':'🇳🇴',
+  'Panama':'🇵🇦','Paraguay':'🇵🇾','Portugal':'🇵🇹','Saudi-Arabien':'🇸🇦',
+  'Schottland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Schweden':'🇸🇪','Schweiz':'🇨🇭','Senegal':'🇸🇳',
+  'Spanien':'🇪🇸','Südafrika':'🇿🇦','Südkorea':'🇰🇷','Tschechien':'🇨🇿',
+  'Tunesien':'🇹🇳','Türkei':'🇹🇷','USA':'🇺🇸','Uruguay':'🇺🇾',
+  'Usbekistan':'🇺🇿','Österreich':'🇦🇹',
+};
+function flagFor(name) { return FLAGS[name] ? FLAGS[name] + ' ' : ''; }
+
 /* ── State ──────────────────────────────────────────────────────── */
 let player = null;          // 'david' | 'frank' | 'admin'
 let adminPassword = null;
@@ -264,14 +282,14 @@ function renderMatchCard(m, idx) {
     </div>
 
     <div class="match-body">
-      <div class="team-name team-home">${m.home_team}</div>
+      <div class="team-name team-home">${flagFor(m.home_team)}${m.home_team}</div>
       <div class="result-box">
         ${hasResult
           ? `<div class="result-score">${m.home_score} : ${m.away_score}</div>`
           : `<div class="result-empty">– : –</div>`}
         ${hasResult && m.penalty_winner ? `<div class="result-flag">n.E.</div>` : ''}
       </div>
-      <div class="team-name team-away">${m.away_team}</div>
+      <div class="team-name team-away">${flagFor(m.away_team)}${m.away_team}</div>
     </div>
 
     <div class="preds-row">
@@ -506,7 +524,7 @@ async function loadGroups() {
             if (i < 2) rowClass = 'qualifies';        // direkt qualifiziert
             else if (i === 2) rowClass = 'qualified3'; // mögl. als bester Dritter
             return `<tr class="${rowClass}">
-              <td>${t.team}</td>
+              <td>${flagFor(t.team)}${t.team}</td>
               <td>${t.played}</td>
               <td>${t.won}</td>
               <td>${t.drawn}</td>
@@ -594,9 +612,9 @@ async function loadRangliste() {
       tr.innerHTML = `
         <td>
           <div class="team-vs">
-            <span>${d.home_team}</span>
+            <span>${flagFor(d.home_team)}${d.home_team}</span>
             <span style="color:var(--muted);font-size:.75rem">vs</span>
-            <span>${d.away_team}</span>
+            <span>${flagFor(d.away_team)}${d.away_team}</span>
             ${d.result ? `<span class="score">${d.result}${d.penalties ? ' n.E.' : d.extra_time ? ' n.V.' : ''}</span>` : ''}
           </div>
         </td>
@@ -645,7 +663,7 @@ async function fetchLiveScores() {
       tbody.innerHTML = table.map((t, i) => {
         const rowClass = i < 2 ? 'qualifies' : i === 2 ? 'qualified3' : '';
         return `<tr class="${rowClass}">
-          <td>${t.team} <span style="font-size:.7rem;color:#dc2626">●</span></td>
+          <td>${flagFor(t.team)}${t.team} <span style="font-size:.7rem;color:#dc2626">●</span></td>
           <td>${t.played}</td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
           <td>${t.gf}:${t.ga}</td>
           <td>${t.gd > 0 ? '+' : ''}${t.gd}</td>
