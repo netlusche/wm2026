@@ -531,23 +531,25 @@ async function loadGroups() {
 async function loadRangliste() {
   const container = document.getElementById('rangliste-content');
   container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Lädt…</div>';
-  const data = await api('api/standings');
+  const [data, live] = await Promise.all([api('api/standings'), api('api/livescores')]);
 
   const { totals, details } = data;
-  const leader = totals.david > totals.frank ? 'david' : totals.frank > totals.david ? 'frank' : null;
+  const disp = (live?.has_live && live?.provisional_totals) ? live.provisional_totals : totals;
+  const suffix = live?.has_live ? '*' : '';
+  const leader = disp.david > disp.frank ? 'david' : disp.frank > disp.david ? 'frank' : null;
 
   container.innerHTML = `
     <div class="standings-header">
       <div class="standings-player-card ${leader === 'david' ? 'leader' : ''}">
         ${leader === 'david' ? '<div class="standings-crown">👑</div>' : ''}
         <div class="standings-name david">David</div>
-        <div class="standings-pts david">${totals.david}</div>
+        <div class="standings-pts david">${disp.david}${suffix}</div>
         <div class="standings-sub">Punkte</div>
       </div>
       <div class="standings-player-card ${leader === 'frank' ? 'leader' : ''}">
         ${leader === 'frank' ? '<div class="standings-crown">👑</div>' : ''}
         <div class="standings-name frank">Frank</div>
-        <div class="standings-pts frank">${totals.frank}</div>
+        <div class="standings-pts frank">${disp.frank}${suffix}</div>
         <div class="standings-sub">Punkte</div>
       </div>
     </div>`;
@@ -655,6 +657,14 @@ async function fetchLiveScores() {
     if (rhInput) rhInput.value = lm.home_score;
     if (raInput) raInput.value = lm.away_score;
   });
+
+  // Update score badge with provisional totals (live or confirmed)
+  if (data.provisional_totals) {
+    const d = document.getElementById('score-david');
+    const f = document.getElementById('score-frank');
+    if (d) d.textContent = data.provisional_totals.david + (data.has_live ? '*' : '');
+    if (f) f.textContent = data.provisional_totals.frank + (data.has_live ? '*' : '');
+  }
 
   // Replace cards for auto-saved matches and refresh scores
   if (data.auto_saved_matches?.length) {

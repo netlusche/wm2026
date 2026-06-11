@@ -6,15 +6,18 @@ Ein webbasiertes Tipp-Spiel für die FIFA Weltmeisterschaft 2026 (USA · Kanada 
 
 ## Features
 
-- **104 Spiele** — 72 Gruppenspiele (Spieltage 1–10) + 32 KO-Spiele
+- **104 Spiele** — 72 Gruppenspiele (Spieltage 1–3) + 32 KO-Spiele
 - **Tipp-Deadline** — Tipps sind nur bis zum Anpfiff des jeweiligen Spiels möglich
 - **Versteckte Tipps** — Der Tipp des anderen Spielers ist vor dem Anpfiff verdeckt
-- **Punktesystem** — 3P exakt / 2P Tordifferenz / 1P Tendenz (Gruppe); 3P exakt / 1P Sieger (KO)
+- **Punktesystem** — 3P exakt / 2P Tordifferenz / 1P Tendenz (Gruppe); 3P exaktes Endergebnis / 1P richtiger Sieger (KO, inkl. Verlängerung & Elfmeter)
+- **Live-Ergebnisse** — Automatischer Abruf via [OpenLigaDB](https://www.openligadb.de/) alle 60 Sekunden; laufende Spiele zeigen `🔴 LIVE`-Badge mit aktuellem Score
+- **Auto-Save** — Abgeschlossene Spiele werden automatisch gespeichert; Punkte und Rangliste aktualisieren sich ohne Admin-Eingriff
+- **Provisorische Rangliste** — Während laufender Spiele zeigt die Rangliste Hochrechnungen basierend auf dem aktuellen Live-Score (markiert mit `*`)
 - **Automatisches Bracket** — KO-Teilnehmer werden nach Gruppenabschluss automatisch eingetragen; Sieger werden durch den Baum weiterpropagiert
 - **Gruppenübersicht** — Live-Tabellen für alle 12 Gruppen (A–L) mit Qualifikationsmarkierung
 - **Rangliste** — Gesamtpunkte mit Aufschlüsselung nach Runde
 - **Spielregeln** — Übersichtliche Darstellung aller Regeln in der App
-- **Admin-Bereich** — Ergebnisse eintragen, n.V./n.E. markieren, KO-Teamnamen anpassen
+- **Admin-Bereich** — Ergebnisse eintragen und löschen, KO-Teamnamen manuell anpassen
 - **PWA** — Installierbar auf iOS & Android, offline-fähige App-Shell
 - **Responsive Design** — Frutiger-Aero-Stil mit Glassmorphism und sanften Animationen
 
@@ -90,10 +93,18 @@ Die App öffnet sich dann ohne Browser-Chrome als eigenständige App. Die App-Sh
 | Frank | 🟥 Rot | Direkt auswählbar |
 | Admin | 🔑 | Passwort-geschützt |
 
+## Live-Score Integration
+
+Ergebnisse werden automatisch von [OpenLigaDB](https://www.openligadb.de/) abgerufen (kostenlos, kein API-Key nötig):
+
+- Laufende Spiele: `🔴 LIVE`-Badge mit aktuellem Score, alle 60 Sekunden aktualisiert
+- Abgeschlossene Spiele: werden automatisch gespeichert (Gruppenphase sofort, KO-Runden sobald OpenLigaDB die Daten einträgt)
+- Elfmeterschießen: der kumulative Endstand (inkl. Elfmeter-Tore) wird gespeichert; der Sieger wird automatisch für die Bracket-Propagierung erkannt
+- Ergebnisse werden im `data/`-Verzeichnis gecacht (60 Sekunden TTL)
+
 ## Admin-Funktionen
 
-- Ergebnisse eintragen und löschen
-- Verlängerung (n.V.) und Elfmeterschießen (n.E.) markieren
+- Ergebnisse manuell eintragen und löschen (Fallback falls OpenLigaDB-Daten fehlen oder verzögert sind)
 - KO-Teamnamen manuell anpassen (Fallback falls Auto-Fill nicht greift)
 - Bracket manuell neu berechnen via Admin-Button in der App
 
