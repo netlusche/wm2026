@@ -654,7 +654,61 @@ if ($method === 'GET' && $path === '/livescores') {
         }
     }
 
-    jsonOut(['matches' => $liveMatches, 'auto_saved_matches' => $autoSavedMatches]);
+    // Provisional group tables for groups with live matches
+    $provisionalGroups = [];
+    if (!empty($liveMatches)) {
+        $liveById = array_column($liveMatches, null, 'match_id');
+        $allGM    = $db->query("SELECT * FROM matches WHERE round='gruppe' ORDER BY gruppe,kickoff")->fetchAll();
+        $affected = array_unique(array_column(array_filter($allGM, fn($m) => isset($liveById[(int)$m['id']])), 'gruppe'));
+        foreach ($affected as $gruppe) {
+            $rows = [];
+            foreach ($allGM as $m) {
+                if ($m['gruppe'] !== $gruppe) continue;
+                foreach ([$m['home_team'], $m['away_team']] as $t) {
+                    if (!isset($rows[$t])) $rows[$t] = ['team'=>$t,'played'=>0,'won'=>0,'drawn'=>0,'lost'=>0,'gf'=>0,'ga'=>0,'pts'=>0];
+                }
+                if (isset($liveById[(int)$m['id']])) {
+                    $hS = $liveById[(int)$m['id']]['home_score']; $aS = $liveById[(int)$m['id']]['away_score'];
+                } elseif ($m['home_score'] !== null) {
+                    $hS = (int)$m['home_score']; $aS = (int)$m['away_score'];
+                } else { continue; }
+                $rows[$m['home_team']]['played']++; $rows[$m['away_team']]['played']++;
+                $rows[$m['home_team']]['gf'] += $hS; $rows[$m['home_team']]['ga'] += $aS;
+                $rows[$m['away_team']]['gf'] += $aS; $rows[$m['away_team']]['ga'] += $hS;
+                if ($hS > $aS)     { $rows[$m['home_team']]['won']++; $rows[$m['home_team']]['pts'] += 3; $rows[$m['away_team']]['lost']++; }
+                elseif ($hS < $aS) { $rows[$m['away_team']]['won']++; $rows[$m['away_team']]['pts'] += 3; $rows[$m['home_team']]['lost']++; }
+                else               { $rows[$m['home_team']]['drawn']++; $rows[$m['home_team']]['pts']++; $rows[$m['away_team']]['drawn']++; $rows[$m['away_team']]['pts']++; }
+            }
+            $arr = array_values($rows);
+            foreach ($arr as &$r) $r['gd'] = $r['gf'] - $r['ga'];
+            usort($arr, fn($a,$b) => $b['pts']-$a['pts'] ?: $b['gd']-$a['gd'] ?: $b['gf']-$a['gf'] ?: $b['won']-$a['won'] ?: strcmp($a['team'],$b['team']));
+            $provisionalGroups[$gruppe] = $arr;
+        }
+    }
+
+    // Provisional standings: confirmed points + live match predictions
+    $totals = ['david' => 0, 'frank' => 0];
+    foreach ($db->query("SELECT * FROM matches ORDER BY kickoff")->fetchAll() as $dbm) {
+        $dbm = nm($dbm);
+        if ($dbm['home_score'] === null) continue;
+        foreach (['david', 'frank'] as $pl) {
+            $s = $db->prepare("SELECT * FROM predictions WHERE match_id=? AND player=?");
+            $s->execute([$dbm['id'], $pl]);
+            $totals[$pl] += calcPoints($s->fetch() ?: null, $dbm) ?? 0;
+        }
+    }
+    $provisional = $totals;
+    foreach ($liveMatches as $lm) {
+        $s = $db->prepare("SELECT * FROM matches WHERE id=?"); $s->execute([$lm['match_id']]); $dbm = nm($s->fetch());
+        $dbm['home_score'] = $lm['home_score']; $dbm['away_score'] = $lm['away_score'];
+        foreach (['david', 'frank'] as $pl) {
+            $s = $db->prepare("SELECT * FROM predictions WHERE match_id=? AND player=?");
+            $s->execute([$lm['match_id'], $pl]);
+            $provisional[$pl] += calcPoints($s->fetch() ?: null, $dbm) ?? 0;
+        }
+    }
+
+    jsonOut(['matches' => $liveMatches, 'auto_saved_matches' => $autoSavedMatches, 'provisional_totals' => $provisional, 'provisional_groups' => $provisionalGroups, 'has_live' => count($liveMatches) > 0]);
 }
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────

@@ -118,10 +118,10 @@ function showSection(name) {
   sec.classList.remove('hidden');
   document.getElementById(`nav-${name}`).classList.add('active');
 
-  if (name !== 'spieltage') stopLivePolling();
-  if (name === 'gruppen')   loadGroups();
+  if (name === 'gruppen')   { loadGroups(); startLivePolling(); }
+  else if (name === 'spieltage' && activeTab) loadMatches(activeTab);
+  else stopLivePolling();
   if (name === 'rangliste') loadRangliste();
-  if (name === 'spieltage' && activeTab) loadMatches(activeTab);
   if (name === 'regeln')    renderRegeln();
 }
 
@@ -210,9 +210,7 @@ async function loadMatches(tab) {
 
   const matches = await api(url);
   renderMatches(matches, container);
-
-  if (tab.round === 'gruppe') startLivePolling();
-  else stopLivePolling();
+  startLivePolling();
 }
 
 function renderMatches(matches, container) {
@@ -486,6 +484,7 @@ async function loadGroups() {
     const teams = groups[g];
     const card = document.createElement('div');
     card.className = 'group-card';
+    card.dataset.gruppe = g;
     card.innerHTML = `
       <div class="group-card-header">Gruppe ${g}</div>
       <table class="group-table">
@@ -632,9 +631,29 @@ function stopLivePolling() {
 }
 
 async function fetchLiveScores() {
-  if (activeSection !== 'spieltage' || activeTab?.round !== 'gruppe') return;
+  if (activeSection !== 'spieltage' && activeSection !== 'gruppen') return;
   const data = await api('api/livescores');
   if (!data || data.error) return;
+
+  // Update provisional group tables
+  if (data.provisional_groups) {
+    Object.entries(data.provisional_groups).forEach(([gruppe, table]) => {
+      const card = document.querySelector(`.group-card[data-gruppe="${gruppe}"]`);
+      if (!card) return;
+      const tbody = card.querySelector('tbody');
+      if (!tbody) return;
+      tbody.innerHTML = table.map((t, i) => {
+        const rowClass = i < 2 ? 'qualifies' : i === 2 ? 'qualified3' : '';
+        return `<tr class="${rowClass}">
+          <td>${t.team} <span style="font-size:.7rem;color:#dc2626">●</span></td>
+          <td>${t.played}</td><td>${t.won}</td><td>${t.drawn}</td><td>${t.lost}</td>
+          <td>${t.gf}:${t.ga}</td>
+          <td>${t.gd > 0 ? '+' : ''}${t.gd}</td>
+          <td class="pts-cell">${t.pts}</td>
+        </tr>`;
+      }).join('');
+    });
+  }
 
   // Apply live badges / admin Übernehmen buttons
   data.matches?.forEach(lm => {
