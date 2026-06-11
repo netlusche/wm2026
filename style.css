@@ -439,6 +439,16 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
 .status-open   { background: var(--green-soft);  color: var(--green-dark); }
 .status-locked { background: var(--gold-bg);      color: var(--gold-text); }
 .status-done   { background: var(--david-bg);     color: var(--david); }
+.status-live   { background: rgba(220,38,38,.12); color: #dc2626; font-weight: 600; }
+
+.live-score {
+  color: #dc2626;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
 
 .match-body {
   display: grid;

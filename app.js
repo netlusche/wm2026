@@ -4,6 +4,7 @@ let adminPassword = null;
 let navItems = [];
 let activeTab = null;       // { round, spieltag }
 let activeSection = 'spieltage';
+let liveScoreInterval = null;
 
 const ROUND_LABELS = {
   gruppe:        null,       // resolved dynamically per spieltag
@@ -117,6 +118,7 @@ function showSection(name) {
   sec.classList.remove('hidden');
   document.getElementById(`nav-${name}`).classList.add('active');
 
+  if (name !== 'spieltage') stopLivePolling();
   if (name === 'gruppen')   loadGroups();
   if (name === 'rangliste') loadRangliste();
   if (name === 'spieltage' && activeTab) loadMatches(activeTab);
@@ -208,6 +210,9 @@ async function loadMatches(tab) {
 
   const matches = await api(url);
   renderMatches(matches, container);
+
+  if (tab.round === 'gruppe') startLivePolling();
+  else stopLivePolling();
 }
 
 function renderMatches(matches, container) {
@@ -242,6 +247,8 @@ function renderMatchCard(m, idx) {
   const card = document.createElement('div');
   card.className = `match-card${hasResult ? ' has-result' : ''}${isLocked ? ' locked' : ''}`;
   card.style.animationDelay = `${idx * 0.04}s`;
+  card.dataset.matchId = m.id;
+  card.dataset.round = m.round;
 
   // ── Header
   let statusHtml;
@@ -262,13 +269,9 @@ function renderMatchCard(m, idx) {
       <div class="team-name team-home">${m.home_team}</div>
       <div class="result-box">
         ${hasResult
-          ? `<div>
-               <div class="result-score">${m.home_score} : ${m.away_score}</div>
-               ${m.extra_time || m.penalties
-                 ? `<div class="result-flag">${m.penalties ? 'n.E.' : 'n.V.'}</div>`
-                 : ''}
-             </div>`
+          ? `<div class="result-score">${m.home_score} : ${m.away_score}</div>`
           : `<div class="result-empty">– : –</div>`}
+        ${hasResult && m.penalty_winner ? `<div class="result-flag">n.E.</div>` : ''}
       </div>
       <div class="team-name team-away">${m.away_team}</div>
     </div>
@@ -314,7 +317,7 @@ function renderPredCell(p, m, hasResult) {
 
 function renderInputArea(m, isLocked, hasResult, isKO) {
   if (player === 'admin') {
-    return renderAdminForm(m, hasResult, isKO);
+    return renderAdminForm(m, hasResult);
   }
   if (!player || isLocked) return '';
 
@@ -334,11 +337,9 @@ function renderInputArea(m, isLocked, hasResult, isKO) {
     </div>`;
 }
 
-function renderAdminForm(m, hasResult, isKO) {
+function renderAdminForm(m, hasResult) {
   const h = hasResult ? m.home_score : '';
   const a = hasResult ? m.away_score : '';
-  const et = m.extra_time ? 'checked' : '';
-  const pen = m.penalties ? 'checked' : '';
 
   return `
     <div class="admin-result-form">
@@ -352,16 +353,6 @@ function renderAdminForm(m, hasResult, isKO) {
         <button class="btn-save" onclick="saveResult(${m.id})">Speichern</button>
         ${hasResult ? `<button class="btn-admin" style="padding:8px 10px;font-size:.78rem;" onclick="deleteResult(${m.id})">✕</button>` : ''}
       </div>
-      ${isKO ? `
-      <div class="admin-checks">
-        <label><input type="checkbox" id="et-${m.id}" ${et} /> Verlängerung</label>
-        <label><input type="checkbox" id="pen-${m.id}" ${pen} onchange="togglePenWinner(${m.id})" /> Elfmeter</label>
-        <div id="pen-winner-${m.id}" class="pen-winner-row" style="display:${pen ? 'flex' : 'none'}">
-          <span style="font-size:.75rem;opacity:.7">Sieger n.E.:</span>
-          <label><input type="radio" name="pw-${m.id}" value="home" ${m.penalty_winner === 'home' ? 'checked' : ''} /> ${m.home_team}</label>
-          <label><input type="radio" name="pw-${m.id}" value="away" ${m.penalty_winner === 'away' ? 'checked' : ''} /> ${m.away_team}</label>
-        </div>
-      </div>` : ''}
       <div class="admin-checks" style="margin-top:6px;">
         <span class="admin-form-label" style="font-size:.72rem">Teams:</span>
         <input type="text" id="th-${m.id}" value="${m.home_team}" class="score-input" style="width:130px;font-size:.78rem;" />
@@ -408,32 +399,20 @@ async function savePrediction(matchId) {
   showToast('Tipp gespeichert ✓', 'success');
 }
 
-function togglePenWinner(matchId) {
-  const pen = document.getElementById(`pen-${matchId}`)?.checked;
-  const row = document.getElementById(`pen-winner-${matchId}`);
-  if (row) row.style.display = pen ? 'flex' : 'none';
-}
 
 async function saveResult(matchId) {
   const h = document.getElementById(`rh-${matchId}`)?.value;
   const a = document.getElementById(`ra-${matchId}`)?.value;
-  const et  = document.getElementById(`et-${matchId}`)?.checked ?? false;
-  const pen = document.getElementById(`pen-${matchId}`)?.checked ?? false;
 
   if (h === '' || a === '') { showToast('Bitte beide Tore eingeben', 'error'); return; }
-
-  const penWinner = pen
-    ? (document.querySelector(`input[name="pw-${matchId}"]:checked`)?.value ?? null)
-    : null;
-  if (pen && !penWinner) { showToast('Bitte Elfmeter-Sieger auswählen', 'error'); return; }
 
   const res = await api('api/result', 'POST', {
     match_id: matchId,
     home_score: parseInt(h),
     away_score: parseInt(a),
-    extra_time: et,
-    penalties: pen,
-    penalty_winner: penWinner,
+    extra_time: false,
+    penalties: false,
+    penalty_winner: null,
     password: adminPassword,
   });
 
@@ -639,6 +618,46 @@ function roundDetailLabel(d) {
   return ROUND_LABELS[d.round] || d.round;
 }
 
+/* ── Live Scores ────────────────────────────────────────────────── */
+function startLivePolling() {
+  stopLivePolling();
+  fetchLiveScores();
+  liveScoreInterval = setInterval(fetchLiveScores, 60000);
+}
+
+function stopLivePolling() {
+  if (liveScoreInterval) { clearInterval(liveScoreInterval); liveScoreInterval = null; }
+}
+
+async function fetchLiveScores() {
+  if (activeSection !== 'spieltage' || activeTab?.round !== 'gruppe') return;
+  const data = await api('api/livescores');
+  if (!data || data.error) return;
+
+  // Apply live badges / admin Übernehmen buttons
+  data.matches?.forEach(lm => {
+    const card = document.querySelector(`.match-card[data-match-id="${lm.match_id}"]`);
+    if (!card) return;
+
+    // Running match: LIVE badge + live score
+    const badge = card.querySelector('.match-status-badge');
+    if (badge && !badge.classList.contains('status-live')) {
+      badge.className = 'match-status-badge status-live';
+      badge.textContent = '🔴 LIVE';
+    }
+    const resultBox = card.querySelector('.result-box');
+    if (resultBox) {
+      resultBox.innerHTML = `<div class="result-score live-score">${lm.home_score} : ${lm.away_score}</div>`;
+    }
+  });
+
+  // Replace cards for auto-saved matches and refresh scores
+  if (data.auto_saved_matches?.length) {
+    data.auto_saved_matches.forEach(m => replaceMatchCard(m.id, m));
+    loadScores();
+  }
+}
+
 /* ── Utilities ──────────────────────────────────────────────────── */
 function formatKickoff(date) {
   return date.toLocaleString('de-DE', {
@@ -704,8 +723,8 @@ function renderRegeln() {
       <div class="regel-card">
         <h3><span class="icon">⚔️</span> KO-Runden</h3>
         <ul>
-          <li><span class="pts">3P</span> Exaktes Ergebnis nach regulärer Spielzeit</li>
-          <li><span class="pts">1P</span> Richtiger Sieger (Tendenz) – kein Unentschieden möglich</li>
+          <li><span class="pts">3P</span> Exaktes Endergebnis (inkl. Verlängerung / Elfmeter)</li>
+          <li><span class="pts">1P</span> Richtiger Sieger – kein Unentschieden möglich</li>
           <li><span class="pts pts-gray">0P</span> Falscher Sieger</li>
         </ul>
         <div class="note">

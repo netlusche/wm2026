@@ -195,6 +195,24 @@ if ((int)$cnt === 0) {
 }
 
 
+// ─── HTTP helper ─────────────────────────────────────────────────────────────
+
+function fetchUrl(string $url): ?string {
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_USERAGENT      => 'WM2026Tippspiel/1.0',
+        ]);
+        $result = curl_exec($ch);
+        return $result ?: null;
+    }
+    $ctx = stream_context_create(['http' => ['timeout' => 5]]);
+    $result = @file_get_contents($url, false, $ctx);
+    return $result ?: null;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function nm(array $m): array {
@@ -559,6 +577,84 @@ if ($method === 'POST' && $path === '/admin/update-bracket') {
     if (!checkPassword($db, $body['password'] ?? '')) jsonOut(['error' => 'Falsches Admin-Passwort'], 401);
     updateBracket($db);
     jsonOut(['success' => true, 'message' => 'Bracket aktualisiert']);
+}
+
+// ─── GET /livescores ──────────────────────────────────────────────────────────
+
+if ($method === 'GET' && $path === '/livescores') {
+    $cacheFile = __DIR__ . '/data/livescores_cache.json';
+    $cacheTTL  = 60;
+
+    if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTTL) {
+        $raw = json_decode(file_get_contents($cacheFile), true) ?? [];
+    } else {
+        $fetched = fetchUrl('https://api.openligadb.de/getmatchdata/wm2026/2026');
+        if (!$fetched) jsonOut(['matches' => [], 'auto_saved_matches' => []]);
+        file_put_contents($cacheFile, $fetched);
+        $raw = json_decode($fetched, true) ?? [];
+    }
+
+    // Build lookup: "TeamA|TeamB" => live data
+    // Use last goal for true final score (covers ET and penalty shootouts)
+    $liveByTeams = [];
+    foreach ($raw as $lm) {
+        $homeScore = 0; $awayScore = 0; $penWinner = null;
+        if (!empty($lm['goals'])) {
+            $last = end($lm['goals']);
+            $homeScore = (int)$last['scoreTeam1'];
+            $awayScore = (int)$last['scoreTeam2'];
+            if (!empty($lm['matchIsFinished']) && !empty($last['isPenalty'])) {
+                $penWinner = $homeScore > $awayScore ? 'home' : ($awayScore > $homeScore ? 'away' : null);
+            }
+        } elseif (!empty($lm['matchIsFinished'])) {
+            foreach ($lm['matchResults'] as $r) {
+                if ((int)$r['resultTypeID'] === 2) {
+                    $homeScore = (int)$r['pointsTeam1'];
+                    $awayScore = (int)$r['pointsTeam2'];
+                }
+            }
+        }
+        $key = $lm['team1']['teamName'] . '|' . $lm['team2']['teamName'];
+        $liveByTeams[$key] = [
+            'is_finished' => !empty($lm['matchIsFinished']),
+            'home_score'  => $homeScore,
+            'away_score'  => $awayScore,
+            'pen_winner'  => $penWinner,
+        ];
+    }
+
+    $ourMatches = $db->query("SELECT id, round, home_team, away_team, home_score, kickoff FROM matches")->fetchAll();
+    $liveMatches      = [];
+    $autoSavedMatches = [];
+
+    foreach ($ourMatches as $m) {
+        $key = $m['home_team'] . '|' . $m['away_team'];
+        if (!isset($liveByTeams[$key])) continue;
+        $live        = $liveByTeams[$key];
+        $kickoffPast = time() >= strtotime($m['kickoff']);
+        if (!$kickoffPast) continue;
+
+        // Auto-save all finished matches (any round)
+        if ($live['is_finished'] && $m['home_score'] === null) {
+            $db->prepare("UPDATE matches SET home_score=?,away_score=?,extra_time=0,penalties=?,penalty_winner=? WHERE id=?")
+               ->execute([$live['home_score'], $live['away_score'], $live['pen_winner'] ? 1 : 0, $live['pen_winner'], (int)$m['id']]);
+            updateBracket($db);
+            $saved = $db->prepare("SELECT * FROM matches WHERE id=?"); $saved->execute([(int)$m['id']]); $saved = $saved->fetch();
+            $autoSavedMatches[] = enrichMatch($db, $saved);
+            continue;
+        }
+
+        // Running match → LIVE badge
+        if (!$live['is_finished']) {
+            $liveMatches[] = [
+                'match_id'   => (int)$m['id'],
+                'home_score' => $live['home_score'],
+                'away_score' => $live['away_score'],
+            ];
+        }
+    }
+
+    jsonOut(['matches' => $liveMatches, 'auto_saved_matches' => $autoSavedMatches]);
 }
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
