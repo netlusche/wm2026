@@ -649,6 +649,11 @@ async function fetchLiveScores() {
     if (resultBox) {
       resultBox.innerHTML = `<div class="result-score live-score">${lm.home_score} : ${lm.away_score}</div>`;
     }
+    // Pre-fill admin inputs with live score
+    const rhInput = card.querySelector(`#rh-${lm.match_id}`);
+    const raInput = card.querySelector(`#ra-${lm.match_id}`);
+    if (rhInput) rhInput.value = lm.home_score;
+    if (raInput) raInput.value = lm.away_score;
   });
 
   // Replace cards for auto-saved matches and refresh scores
