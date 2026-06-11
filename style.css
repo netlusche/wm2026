@@ -496,6 +496,32 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
   border-radius: 999px;
 }
 
+/* ── Goal Events ────────────────────────────────────────────────── */
+.goal-events {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 6px;
+  width: 100%;
+  min-width: 160px;
+}
+.goal-event {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  font-size: .68rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.goal-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.goal-away .goal-text {
+  text-align: right;
+}
+
 /* ── Predictions Row ────────────────────────────────────────────── */
 .preds-row {
   display: grid;

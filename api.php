@@ -620,12 +620,21 @@ if ($method === 'GET' && $path === '/livescores') {
             'home_score'  => $homeScore,
             'away_score'  => $awayScore,
             'pen_winner'  => $penWinner,
+            'goals'       => array_map(fn($g) => [
+                'name'      => $g['goalGetterName'] ?? '',
+                'minute'    => isset($g['matchMinute']) ? (int)$g['matchMinute'] : null,
+                'isPenalty' => !empty($g['isPenalty']),
+                'isOwnGoal' => !empty($g['isOwnGoal']),
+                'score1'    => (int)($g['scoreTeam1'] ?? 0),
+                'score2'    => (int)($g['scoreTeam2'] ?? 0),
+            ], $lm['goals'] ?? []),
         ];
     }
 
     $ourMatches = $db->query("SELECT id, round, home_team, away_team, home_score, kickoff FROM matches")->fetchAll();
     $liveMatches      = [];
     $autoSavedMatches = [];
+    $allGoals         = [];
 
     foreach ($ourMatches as $m) {
         $key = $m['home_team'] . '|' . $m['away_team'];
@@ -633,6 +642,11 @@ if ($method === 'GET' && $path === '/livescores') {
         $live        = $liveByTeams[$key];
         $kickoffPast = time() >= strtotime($m['kickoff']);
         if (!$kickoffPast) continue;
+
+        // Collect goals for all past-kickoff matches
+        if (!empty($live['goals'])) {
+            $allGoals[(int)$m['id']] = $live['goals'];
+        }
 
         // Auto-save all finished matches (any round)
         if ($live['is_finished'] && $m['home_score'] === null) {
@@ -650,6 +664,7 @@ if ($method === 'GET' && $path === '/livescores') {
                 'match_id'   => (int)$m['id'],
                 'home_score' => $live['home_score'],
                 'away_score' => $live['away_score'],
+                'goals'      => $live['goals'],
             ];
         }
     }
@@ -708,7 +723,7 @@ if ($method === 'GET' && $path === '/livescores') {
         }
     }
 
-    jsonOut(['matches' => $liveMatches, 'auto_saved_matches' => $autoSavedMatches, 'provisional_totals' => $provisional, 'provisional_groups' => $provisionalGroups, 'has_live' => count($liveMatches) > 0]);
+    jsonOut(['matches' => $liveMatches, 'auto_saved_matches' => $autoSavedMatches, 'provisional_totals' => $provisional, 'provisional_groups' => $provisionalGroups, 'has_live' => count($liveMatches) > 0, 'all_goals' => $allGoals]);
 }
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────

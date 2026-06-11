@@ -16,6 +16,26 @@ const FLAGS = {
 };
 function flagFor(name) { return FLAGS[name] ? FLAGS[name] + ' ' : ''; }
 
+function renderGoalEvents(goals) {
+  if (!goals || !goals.length) return '';
+  const usable = goals.filter(g => g.name || g.minute);
+  if (!usable.length) return '';
+  let prev1 = 0, prev2 = 0;
+  const items = usable.map(g => {
+    const isHome = g.score1 > prev1;
+    prev1 = g.score1; prev2 = g.score2;
+    const icon = g.isOwnGoal ? '🔴' : '⚽';
+    const suffix = g.isOwnGoal ? ' (ET)' : (g.isPenalty ? ' (P)' : '');
+    const name = g.name || '';
+    const min = g.minute ? `${g.minute}'` : '';
+    const text = [icon, name + suffix, min].filter(Boolean).join(' ');
+    return `<div class="goal-event ${isHome ? 'goal-home' : 'goal-away'}">
+      ${isHome ? `<span class="goal-text">${text}</span><span></span>` : `<span></span><span class="goal-text">${text}</span>`}
+    </div>`;
+  });
+  return `<div class="goal-events">${items.join('')}</div>`;
+}
+
 /* ── State ──────────────────────────────────────────────────────── */
 let player = null;          // 'david' | 'frank' | 'admin'
 let adminPassword = null;
@@ -687,6 +707,8 @@ async function fetchLiveScores() {
     const resultBox = card.querySelector('.result-box');
     if (resultBox) {
       resultBox.innerHTML = `<div class="result-score live-score">${lm.home_score} : ${lm.away_score}</div>`;
+      const ge = renderGoalEvents(lm.goals);
+      if (ge) resultBox.insertAdjacentHTML('beforeend', ge);
     }
     // Pre-fill admin inputs with live score
     const rhInput = card.querySelector(`#rh-${lm.match_id}`);
@@ -694,6 +716,20 @@ async function fetchLiveScores() {
     if (rhInput) rhInput.value = lm.home_score;
     if (raInput) raInput.value = lm.away_score;
   });
+
+  // Append goal events for all matches with goals (live + finished)
+  if (data.all_goals) {
+    Object.entries(data.all_goals).forEach(([matchId, goals]) => {
+      const card = document.querySelector(`.match-card[data-match-id="${matchId}"]`);
+      if (!card) return;
+      const resultBox = card.querySelector('.result-box');
+      if (!resultBox) return;
+      const existing = resultBox.querySelector('.goal-events');
+      if (existing) existing.remove();
+      const ge = renderGoalEvents(goals);
+      if (ge) resultBox.insertAdjacentHTML('beforeend', ge);
+    });
+  }
 
   // Update score badge with provisional totals (live or confirmed)
   if (data.provisional_totals) {
