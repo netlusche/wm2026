@@ -413,6 +413,12 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
 .match-card.has-result {
   border-left: 4px solid var(--green);
 }
+.match-card.needs-tip {
+  border-left: 4px solid #ea580c;
+}
+.match-card.needs-tip .match-header {
+  background: rgba(234, 88, 12, .06);
+}
 
 .match-header {
   display: flex;
@@ -423,6 +429,17 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
   color: var(--muted);
   background: rgba(255,255,255,.40);
   border-bottom: 1px solid rgba(255,255,255,.65);
+}
+.kickoff-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.match-countdown {
+  font-size: .63rem;
+  font-weight: 600;
+  color: #ea580c;
 }
 .match-gruppe {
   font-weight: 700;
@@ -796,6 +813,64 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
 
 .team-vs { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .team-vs .score { color: var(--sky-dark); font-weight: 700; margin-left: 4px; }
+
+/* ── Head-to-Head Stats ─────────────────────────────────────────── */
+.stats-section {
+  margin-top: 20px;
+}
+.stats-title {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  padding: 0 4px 8px;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.stat-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px);
+  padding: 12px 14px;
+}
+.stat-player {
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+}
+.stat-player.david { color: var(--david); }
+.stat-player.frank { color: var(--frank); }
+.stat-section-label {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin: 8px 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(255,255,255,.5);
+}
+.stat-section-label:first-of-type { margin-top: 0; }
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .75rem;
+  padding: 2px 0;
+  color: var(--text2);
+}
+.stat-row strong {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--text);
+}
 
 /* ── Toast ──────────────────────────────────────────────────────── */
 .toast {

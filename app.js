@@ -43,6 +43,7 @@ let navItems = [];
 let activeTab = null;       // { round, spieltag }
 let activeSection = 'spieltage';
 let liveScoreInterval = null;
+let countdownInterval = null;
 
 const ROUND_LABELS = {
   gruppe:        null,       // resolved dynamically per spieltag
@@ -71,6 +72,7 @@ async function init() {
   renderSpieltageNav();
   await loadScores();
   startLivePolling();
+  startCountdownTick();
 }
 
 /* ── Player Selection ───────────────────────────────────────────── */
@@ -280,8 +282,13 @@ function renderMatchCard(m, idx) {
   const hasResult = m.home_score !== null && m.home_score !== undefined;
   const isKO = m.round !== 'gruppe';
 
+  const msUntilKickoff = kickoff - now;
+  const needsTip = player !== 'admin' && !isLocked && !hasResult
+    && msUntilKickoff < 3 * 3600 * 1000 && !m.predictions[player];
+  const showCountdown = msUntilKickoff > 0 && msUntilKickoff < 24 * 3600 * 1000;
+
   const card = document.createElement('div');
-  card.className = `match-card${hasResult ? ' has-result' : ''}${isLocked ? ' locked' : ''}`;
+  card.className = `match-card${hasResult ? ' has-result' : ''}${isLocked ? ' locked' : ''}${needsTip ? ' needs-tip' : ''}`;
   card.style.animationDelay = `${idx * 0.04}s`;
   card.dataset.matchId = m.id;
   card.dataset.round = m.round;
@@ -297,7 +304,10 @@ function renderMatchCard(m, idx) {
   card.innerHTML = `
     <div class="match-header">
       <span class="match-gruppe">${gruppeLabel}</span>
-      <span class="match-kickoff">${formatKickoff(kickoff)}</span>
+      <div class="kickoff-wrap">
+        <span class="match-kickoff">${formatKickoff(kickoff)}</span>
+        ${showCountdown ? `<span class="match-countdown" data-kickoff="${kickoff.toISOString()}"></span>` : ''}
+      </div>
       ${statusHtml}
     </div>
 
@@ -650,6 +660,71 @@ async function loadRangliste() {
       tbody.appendChild(tr);
     });
   });
+
+  const stats = buildStats(details);
+  const statsEl = renderStatsSection(stats);
+  if (statsEl) container.appendChild(statsEl);
+}
+
+function buildStats(details) {
+  const s = {};
+  ['david', 'frank'].forEach(p => {
+    s[p] = { exact: 0, gd: 0, tendency: 0, miss: 0, ko_exact: 0, ko_win: 0, ko_miss: 0, played: 0, ko_played: 0 };
+  });
+  details.forEach(d => {
+    const isKO = d.round !== 'gruppe';
+    ['david', 'frank'].forEach(p => {
+      const pts = d[`${p}_pts`];
+      if (pts === null || pts === undefined || d[`${p}_pred`] === null) return;
+      if (!isKO) {
+        s[p].played++;
+        if (pts === 3) s[p].exact++;
+        else if (pts === 2) s[p].gd++;
+        else if (pts === 1) s[p].tendency++;
+        else s[p].miss++;
+      } else {
+        s[p].ko_played++;
+        if (pts === 3) s[p].ko_exact++;
+        else if (pts === 1) s[p].ko_win++;
+        else s[p].ko_miss++;
+      }
+    });
+  });
+  return s;
+}
+
+function renderStatsSection(stats) {
+  if (!stats.david.played && !stats.david.ko_played) return null;
+  const el = document.createElement('div');
+  el.className = 'stats-section';
+  el.innerHTML = `
+    <div class="stats-title">Head-to-Head</div>
+    <div class="stats-grid">
+      ${renderStatCard('david', stats.david)}
+      ${renderStatCard('frank', stats.frank)}
+    </div>`;
+  return el;
+}
+
+function renderStatCard(p, s) {
+  const rows = [];
+  if (s.played > 0) {
+    rows.push(`<div class="stat-section-label">Gruppenphase (${s.played} Spiele)</div>`);
+    rows.push(`<div class="stat-row"><span>⚽ Exakt (3P)</span><strong>${s.exact}</strong></div>`);
+    rows.push(`<div class="stat-row"><span>↔ Tordifferenz (2P)</span><strong>${s.gd}</strong></div>`);
+    rows.push(`<div class="stat-row"><span>✓ Tendenz (1P)</span><strong>${s.tendency}</strong></div>`);
+    rows.push(`<div class="stat-row"><span>✗ Daneben</span><strong>${s.miss}</strong></div>`);
+  }
+  if (s.ko_played > 0) {
+    rows.push(`<div class="stat-section-label">KO-Runden (${s.ko_played} Spiele)</div>`);
+    rows.push(`<div class="stat-row"><span>⚽ Exakt (3P)</span><strong>${s.ko_exact}</strong></div>`);
+    rows.push(`<div class="stat-row"><span>✓ Richtiger Sieger (1P)</span><strong>${s.ko_win}</strong></div>`);
+    rows.push(`<div class="stat-row"><span>✗ Daneben</span><strong>${s.ko_miss}</strong></div>`);
+  }
+  return `<div class="stat-card">
+    <div class="stat-player ${p}">${p === 'david' ? 'David' : 'Frank'}</div>
+    ${rows.join('')}
+  </div>`;
 }
 
 function roundDetailLabel(d) {
@@ -666,6 +741,28 @@ function startLivePolling() {
 
 function stopLivePolling() {
   if (liveScoreInterval) { clearInterval(liveScoreInterval); liveScoreInterval = null; }
+}
+
+function startCountdownTick() {
+  updateCountdowns();
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(updateCountdowns, 60000);
+}
+
+function updateCountdowns() {
+  const now = Date.now();
+  document.querySelectorAll('.match-countdown[data-kickoff]').forEach(el => {
+    const diff = new Date(el.dataset.kickoff).getTime() - now;
+    if (diff <= 0 || diff > 24 * 3600 * 1000) { el.textContent = ''; return; }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    el.textContent = h > 0 ? `noch ${h}h ${m}m` : `noch ${m}m`;
+  });
+  // Remove needs-tip once kickoff has passed
+  document.querySelectorAll('.match-card.needs-tip').forEach(card => {
+    const ko = card.querySelector('.match-countdown');
+    if (!ko) card.classList.remove('needs-tip');
+  });
 }
 
 async function fetchLiveScores() {

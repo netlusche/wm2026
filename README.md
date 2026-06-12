@@ -7,7 +7,7 @@ Ein webbasiertes Tipp-Spiel für die FIFA Weltmeisterschaft 2026 (USA · Kanada 
 ## Features
 
 - **104 Spiele** — 72 Gruppenspiele (Spieltage 1–3) + 32 KO-Spiele
-- **Tipp-Deadline** — Tipps sind nur bis zum Anpfiff des jeweiligen Spiels möglich
+- **Tipp-Deadline** — Tipps sind nur bis zum Anpfiff des jeweiligen Spiels möglich; Spiele mit fehlendem Tipp werden <3h vor Anpfiff orange markiert; Countdown erscheint <24h vor Anpfiff
 - **Versteckte Tipps** — Der Tipp des anderen Spielers ist vor dem Anpfiff verdeckt
 - **Punktesystem** — 3P exakt / 2P Tordifferenz / 1P Tendenz (Gruppe); 3P exaktes Endergebnis / 1P richtiger Sieger (KO, inkl. Verlängerung & Elfmeter)
 - **Live-Ergebnisse** — Automatischer Abruf via [OpenLigaDB](https://www.openligadb.de/) alle 60 Sekunden auf allen Tabs; laufende Spiele zeigen `🔴 LIVE`-Badge mit aktuellem Score; Torschützen (inkl. Eigentore und Elfmeter) werden unterhalb des Ergebnisses angezeigt, sobald OpenLigaDB die Daten liefert; manuell eingetragene Ergebnisse werden nicht überschrieben
@@ -15,7 +15,7 @@ Ein webbasiertes Tipp-Spiel für die FIFA Weltmeisterschaft 2026 (USA · Kanada 
 - **Provisorische Gruppen & Rangliste** — Während laufender Spiele werden Gruppentabellen und Rangliste live hochgerechnet (markiert mit `●` / `*`)
 - **Automatisches Bracket** — KO-Teilnehmer werden nach Gruppenabschluss automatisch eingetragen; Sieger werden durch den Baum weiterpropagiert
 - **Gruppenübersicht** — Live-Tabellen für alle 12 Gruppen (A–L) mit Qualifikationsmarkierung
-- **Rangliste** — Gesamtpunkte mit Aufschlüsselung nach Runde
+- **Rangliste** — Gesamtpunkte mit Aufschlüsselung nach Runde; Head-to-Head Statistik (Exakttreffer, Tordifferenz, Tendenz je Gruppenphase und KO)
 - **Spielregeln** — Übersichtliche Darstellung aller Regeln in der App
 - **Admin-Bereich** — Ergebnisse eintragen und löschen, KO-Teamnamen manuell anpassen
 - **PWA** — Installierbar auf iOS & Android, offline-fähige App-Shell
