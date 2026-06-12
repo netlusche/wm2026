@@ -586,6 +586,41 @@ if ($method === 'POST' && $path === '/admin/update-bracket') {
     jsonOut(['success' => true, 'message' => 'Bracket aktualisiert']);
 }
 
+// ─── POST /admin/sync-schedule ────────────────────────────────────────────────
+
+if ($method === 'POST' && $path === '/admin/sync-schedule') {
+    if (!checkPassword($db, $body['password'] ?? '')) jsonOut(['error' => 'Falsches Admin-Passwort'], 401);
+
+    $rawStr = fetchUrl('https://api.openligadb.de/getmatchdata/wm2026/2026');
+    if (!$rawStr) jsonOut(['error' => 'OpenLigaDB nicht erreichbar'], 502);
+    $raw = json_decode($rawStr, true) ?? [];
+
+    $apiMatches = [];
+    foreach ($raw as $m) {
+        $name1 = $m['team1']['teamName'] ?? '';
+        $name2 = $m['team2']['teamName'] ?? '';
+        $dt    = $m['matchDateTime'] ?? null;
+        if ($name1 && $name2 && $dt) $apiMatches[] = ['home' => $name1, 'away' => $name2, 'kickoff' => $dt];
+    }
+
+    $dbMatches = $db->query("SELECT id, home_team, away_team FROM matches WHERE home_score IS NULL")->fetchAll();
+
+    $updated = 0;
+    $stmt = $db->prepare("UPDATE matches SET kickoff=? WHERE id=?");
+    foreach ($dbMatches as $dbm) {
+        foreach ($apiMatches as $am) {
+            if ($am['home'] === $dbm['home_team'] && $am['away'] === $dbm['away_team']) {
+                $kickoff = rtrim($am['kickoff'], 'Z') . '+02:00';
+                $stmt->execute([$kickoff, $dbm['id']]);
+                $updated++;
+                break;
+            }
+        }
+    }
+
+    jsonOut(['success' => true, 'updated' => $updated]);
+}
+
 // ─── GET /livescores ──────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $path === '/livescores') {

@@ -942,12 +942,52 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
   justify-content: center;
   line-height: 1;
 }
+.phrase-reload-btn {
+  position: absolute;
+  top: 10px;
+  right: 58px;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.phrase-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20,30,50,.7);
+  z-index: 5;
+  border-radius: 18px;
+}
+.phrase-loader.hidden { display: none; }
+.phrase-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255,255,255,.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .phrase-frame {
   width: 154%;
   height: 154%;
   border: none;
   transform: scale(0.65);
   transform-origin: 0 0;
+  opacity: 0;
+  transition: opacity .2s;
 }
 
 /* ── Toast ──────────────────────────────────────────────────────── */

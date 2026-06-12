@@ -734,13 +734,29 @@ function startLivePolling() {
   liveScoreInterval = setInterval(fetchLiveScores, 60000);
 }
 
+function onPhraseFrameLoad() {
+  const loader = document.getElementById('phrase-loader');
+  const frame  = document.getElementById('phrase-frame');
+  if (loader) loader.classList.add('hidden');
+  if (frame)  frame.style.opacity = '1';
+}
+
+function reloadPhraseFrame() {
+  const loader = document.getElementById('phrase-loader');
+  const frame  = document.getElementById('phrase-frame');
+  if (loader) loader.classList.remove('hidden');
+  if (frame)  { frame.style.opacity = '0'; frame.src = 'https://plandoo.de/phrasendrescher/'; }
+}
+
 function showPhraseModal() {
   const overlay = document.getElementById('phrase-overlay');
   const modal   = document.getElementById('phrase-modal');
   const btn     = document.getElementById('phrase-btn');
   overlay.classList.remove('hidden');
-  const frame = document.querySelector('.phrase-frame');
-  if (frame) { frame.src = ''; frame.src = 'https://plandoo.de/phrasendrescher/'; }
+  const loader = document.getElementById('phrase-loader');
+  const frame  = document.getElementById('phrase-frame');
+  if (loader) loader.classList.remove('hidden');
+  if (frame)  { frame.style.opacity = '0'; frame.src = 'https://plandoo.de/phrasendrescher/'; }
   requestAnimationFrame(() => {
     const btnRect   = btn.getBoundingClientRect();
     const modalRect = modal.getBoundingClientRect();
@@ -972,6 +988,13 @@ function renderRegeln() {
 
       ${isAdmin ? `
       <div class="regel-card">
+        <h3><span class="icon">📅</span> Spielplan aktualisieren</h3>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:10px">Kickoff-Zeiten für noch nicht gespielte Spiele aus OpenLigaDB neu laden. Spiele mit eingetragenem Ergebnis bleiben unberührt.</p>
+        <button onclick="syncSchedule()">Spielplan aktualisieren</button>
+        <span id="sync-msg" style="font-size:.8rem;color:var(--muted);margin-left:8px"></span>
+      </div>
+
+      <div class="regel-card">
         <h3><span class="icon">🔑</span> Admin-Passwort ändern</h3>
         <div class="pw-change-form" id="pw-change-form">
           <input type="password" id="pw-current" placeholder="Aktuelles Passwort" />
@@ -1008,6 +1031,26 @@ async function changeAdminPassword() {
     document.getElementById('pw-current').value = '';
     document.getElementById('pw-new').value = '';
     document.getElementById('pw-confirm').value = '';
+  } else {
+    msg.style.color = 'var(--frank)';
+    msg.textContent = '❌ ' + (data.error || 'Fehler');
+  }
+}
+
+async function syncSchedule() {
+  const msg = document.getElementById('sync-msg');
+  msg.style.color = 'var(--muted)';
+  msg.textContent = 'Wird geladen…';
+  const res = await fetch('api/admin/sync-schedule', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: adminPassword })
+  });
+  const data = await res.json();
+  if (res.ok) {
+    msg.style.color = 'var(--green-dark)';
+    msg.textContent = `✓ ${data.updated} Spiel(e) aktualisiert`;
+    loadMatches();
   } else {
     msg.style.color = 'var(--frank)';
     msg.textContent = '❌ ' + (data.error || 'Fehler');
