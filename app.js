@@ -273,6 +273,7 @@ function renderMatches(matches, container) {
       container.appendChild(renderMatchCard(m, idx));
     });
   });
+  updateCountdowns();
 }
 
 function renderMatchCard(m, idx) {
