@@ -73,7 +73,7 @@ async function init() {
   await loadScores();
   startLivePolling();
   startCountdownTick();
-  if (player) showPhraseModal();
+  if (player && player !== 'admin') showPhraseModal();
 }
 
 /* ── Player Selection ───────────────────────────────────────────── */
@@ -103,6 +103,7 @@ function selectPlayer(p) {
   setTimeout(showPhraseModal, 150);
 }
 
+
 async function submitAdminPassword() {
   const pw = document.getElementById('admin-pw-input').value;
   const res = await fetch('api/result', {
@@ -127,7 +128,6 @@ async function submitAdminPassword() {
   document.getElementById('admin-pw-error').classList.add('hidden');
   applyPlayer();
   if (activeTab) loadMatches(activeTab);
-  setTimeout(showPhraseModal, 150);
 }
 
 function cancelAdmin() {
@@ -739,6 +739,8 @@ function showPhraseModal() {
   const modal   = document.getElementById('phrase-modal');
   const btn     = document.getElementById('phrase-btn');
   overlay.classList.remove('hidden');
+  const frame = document.querySelector('.phrase-frame');
+  if (frame) { frame.src = ''; frame.src = 'https://plandoo.de/phrasendrescher/'; }
   requestAnimationFrame(() => {
     const btnRect   = btn.getBoundingClientRect();
     const modalRect = modal.getBoundingClientRect();

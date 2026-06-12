@@ -18,7 +18,8 @@ Ein webbasiertes Tipp-Spiel für die FIFA Weltmeisterschaft 2026 (USA · Kanada 
 - **Rangliste** — Gesamtpunkte mit Aufschlüsselung nach Runde; Head-to-Head Statistik (Exakttreffer, Tordifferenz, Tendenz je Gruppenphase und KO)
 - **Spielregeln** — Übersichtliche Darstellung aller Regeln in der App
 - **Admin-Bereich** — Ergebnisse eintragen und löschen, KO-Teamnamen manuell anpassen
-- **PWA** — Installierbar auf iOS & Android, offline-fähige App-Shell
+- **Phrasendrescher** — Beim App-Start erscheint automatisch ein Modal mit dem [Phrasendrescher](https://plandoo.de/phrasendrescher/); jederzeit über den 🎲-Button im Header erreichbar (nicht im Admin-Modus)
+- **PWA** — Installierbar auf iOS & Android, offline-fähige App-Shell; automatischer Reload bei SW-Update
 - **Responsive Design** — Frutiger-Aero-Stil mit Glassmorphism und sanften Animationen
 
 ## Stack

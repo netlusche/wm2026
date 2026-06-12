@@ -904,7 +904,7 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
   position: relative;
   width: 90vw;
   max-width: 900px;
-  height: 88vh;
+  height: 72vh;
   background: #fff;
   border-radius: var(--radius);
   overflow: hidden;
@@ -926,16 +926,16 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
 }
 .phrase-close {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   z-index: 10;
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: none;
-  background: rgba(0,0,0,.55);
+  background: rgba(0,0,0,.6);
   color: #fff;
-  font-size: .85rem;
+  font-size: 1.1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
