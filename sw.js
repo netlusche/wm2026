@@ -1,6 +1,10 @@
-const CACHE = 'wm2026-v6';
+const CACHE = 'wm2026-v7';
 const BASE  = self.registration.scope.replace(/\/$/, '');
 const SHELL = ['', '/style.css', '/app.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'].map(p => BASE + (p || '/'));
+
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 // Install: cache app shell
 self.addEventListener('install', e => {

@@ -73,6 +73,7 @@ async function init() {
   await loadScores();
   startLivePolling();
   startCountdownTick();
+  if (player) showPhraseModal();
 }
 
 /* ── Player Selection ───────────────────────────────────────────── */
@@ -99,6 +100,7 @@ function selectPlayer(p) {
   applyPlayer();
   hideModal();
   if (activeTab) loadMatches(activeTab);
+  setTimeout(showPhraseModal, 150);
 }
 
 async function submitAdminPassword() {
@@ -125,6 +127,7 @@ async function submitAdminPassword() {
   document.getElementById('admin-pw-error').classList.add('hidden');
   applyPlayer();
   if (activeTab) loadMatches(activeTab);
+  setTimeout(showPhraseModal, 150);
 }
 
 function cancelAdmin() {
@@ -729,6 +732,47 @@ function startLivePolling() {
   stopLivePolling();
   fetchLiveScores();
   liveScoreInterval = setInterval(fetchLiveScores, 60000);
+}
+
+function showPhraseModal() {
+  const overlay = document.getElementById('phrase-overlay');
+  const modal   = document.getElementById('phrase-modal');
+  const btn     = document.getElementById('phrase-btn');
+  overlay.classList.remove('hidden');
+  requestAnimationFrame(() => {
+    const btnRect   = btn.getBoundingClientRect();
+    const modalRect = modal.getBoundingClientRect();
+    const ox = btnRect.left + btnRect.width  / 2 - modalRect.left;
+    const oy = btnRect.top  + btnRect.height / 2 - modalRect.top;
+    modal.style.transition      = 'none';
+    modal.style.transformOrigin = `${ox}px ${oy}px`;
+    modal.style.transform       = 'scale(0)';
+    modal.style.opacity         = '0';
+    requestAnimationFrame(() => {
+      modal.style.transition = '';
+      modal.style.transform  = '';
+      modal.style.opacity    = '';
+    });
+  });
+}
+
+function closePhraseModal() {
+  const overlay = document.getElementById('phrase-overlay');
+  const modal   = document.getElementById('phrase-modal');
+  const btn     = document.getElementById('phrase-btn');
+  const btnRect   = btn.getBoundingClientRect();
+  const modalRect = modal.getBoundingClientRect();
+  const ox = btnRect.left + btnRect.width  / 2 - modalRect.left;
+  const oy = btnRect.top  + btnRect.height / 2 - modalRect.top;
+  modal.style.transformOrigin = `${ox}px ${oy}px`;
+  modal.style.transform = 'scale(0)';
+  modal.style.opacity   = '0';
+  setTimeout(() => {
+    overlay.classList.add('hidden');
+    modal.style.transform      = '';
+    modal.style.opacity        = '';
+    modal.style.transformOrigin = '';
+  }, 300);
 }
 
 function stopLivePolling() {

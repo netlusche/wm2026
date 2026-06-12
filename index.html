@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=7" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
@@ -82,6 +82,7 @@
           <span class="score-sep">|</span>
           <span class="score-frank">F: <strong id="score-frank">0</strong></span>
         </div>
+        <button id="phrase-btn" class="phrase-header-btn" onclick="showPhraseModal()" title="Phrasendrescher">🎲</button>
         <button id="player-badge" class="player-badge" onclick="showModal()"></button>
       </div>
     </div>
@@ -123,6 +124,15 @@
 
   </main>
 
+  <!-- Phrasendrescher Modal -->
+  <div id="phrase-overlay" class="phrase-overlay hidden" onclick="closePhraseModal()">
+    <div id="phrase-modal" class="phrase-modal" onclick="event.stopPropagation()">
+      <a class="phrase-newtab" href="https://plandoo.de/phrasendrescher/" target="_blank" rel="noopener">↗ Zum Phrasendrescher</a>
+      <button class="phrase-close" onclick="closePhraseModal()">✕</button>
+      <iframe src="https://plandoo.de/phrasendrescher/" class="phrase-frame" loading="lazy"></iframe>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
 
@@ -130,7 +140,18 @@
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          reg.installing.addEventListener('statechange', e => {
+            if (e.target.state === 'installed' && navigator.serviceWorker.controller) {
+              e.target.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
     }
   </script>
 </body>
