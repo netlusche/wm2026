@@ -70,6 +70,7 @@ async function init() {
   navItems = await api('api/nav');
   renderSpieltageNav();
   await loadScores();
+  startLivePolling();
 }
 
 /* ── Player Selection ───────────────────────────────────────────── */
@@ -156,9 +157,8 @@ function showSection(name) {
   sec.classList.remove('hidden');
   document.getElementById(`nav-${name}`).classList.add('active');
 
-  if (name === 'gruppen')   { loadGroups(); startLivePolling(); }
+  if (name === 'gruppen')   loadGroups();
   else if (name === 'spieltage' && activeTab) loadMatches(activeTab);
-  else stopLivePolling();
   if (name === 'rangliste') loadRangliste();
   if (name === 'regeln')    renderRegeln();
 }
@@ -669,12 +669,11 @@ function stopLivePolling() {
 }
 
 async function fetchLiveScores() {
-  if (activeSection !== 'spieltage' && activeSection !== 'gruppen') return;
   const data = await api('api/livescores');
   if (!data || data.error) return;
 
-  // Update provisional group tables
-  if (data.provisional_groups) {
+  // Update provisional group tables (only when on gruppen tab)
+  if (activeSection === 'gruppen' && data.provisional_groups) {
     Object.entries(data.provisional_groups).forEach(([gruppe, table]) => {
       const card = document.querySelector(`.group-card[data-gruppe="${gruppe}"]`);
       if (!card) return;
@@ -693,8 +692,8 @@ async function fetchLiveScores() {
     });
   }
 
-  // Apply live badges / admin Übernehmen buttons
-  data.matches?.forEach(lm => {
+  // Apply live badges + goal events (only when on spieltage tab)
+  if (activeSection === 'spieltage') data.matches?.forEach(lm => {
     const card = document.querySelector(`.match-card[data-match-id="${lm.match_id}"]`);
     if (!card) return;
 
@@ -717,8 +716,8 @@ async function fetchLiveScores() {
     if (raInput) raInput.value = lm.away_score;
   });
 
-  // Append goal events for all matches with goals (live + finished)
-  if (data.all_goals) {
+  // Append goal events for all matches with goals (only on spieltage tab)
+  if (activeSection === 'spieltage' && data.all_goals) {
     Object.entries(data.all_goals).forEach(([matchId, goals]) => {
       const card = document.querySelector(`.match-card[data-match-id="${matchId}"]`);
       if (!card) return;
@@ -739,10 +738,14 @@ async function fetchLiveScores() {
     if (f) f.textContent = data.provisional_totals.frank + (data.has_live ? '*' : '');
   }
 
-  // Replace cards for auto-saved matches and refresh scores
+  // Replace cards for auto-saved matches and refresh scores/rangliste
   if (data.auto_saved_matches?.length) {
-    data.auto_saved_matches.forEach(m => replaceMatchCard(m.id, m));
-    loadScores();
+    if (activeSection === 'spieltage') {
+      data.auto_saved_matches.forEach(m => replaceMatchCard(m.id, m));
+      loadScores();
+    }
+    if (activeSection === 'rangliste') loadRangliste();
+    if (activeSection === 'gruppen') loadGroups();
   }
 }
 

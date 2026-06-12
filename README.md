@@ -10,7 +10,7 @@ Ein webbasiertes Tipp-Spiel für die FIFA Weltmeisterschaft 2026 (USA · Kanada 
 - **Tipp-Deadline** — Tipps sind nur bis zum Anpfiff des jeweiligen Spiels möglich
 - **Versteckte Tipps** — Der Tipp des anderen Spielers ist vor dem Anpfiff verdeckt
 - **Punktesystem** — 3P exakt / 2P Tordifferenz / 1P Tendenz (Gruppe); 3P exaktes Endergebnis / 1P richtiger Sieger (KO, inkl. Verlängerung & Elfmeter)
-- **Live-Ergebnisse** — Automatischer Abruf via [OpenLigaDB](https://www.openligadb.de/) alle 60 Sekunden; laufende Spiele zeigen `🔴 LIVE`-Badge mit aktuellem Score; Torschützen (inkl. Eigentore und Elfmeter) werden unterhalb des Ergebnisses angezeigt, sobald OpenLigaDB die Daten liefert
+- **Live-Ergebnisse** — Automatischer Abruf via [OpenLigaDB](https://www.openligadb.de/) alle 60 Sekunden auf allen Tabs; laufende Spiele zeigen `🔴 LIVE`-Badge mit aktuellem Score; Torschützen (inkl. Eigentore und Elfmeter) werden unterhalb des Ergebnisses angezeigt, sobald OpenLigaDB die Daten liefert; manuell eingetragene Ergebnisse werden nicht überschrieben
 - **Auto-Save** — Abgeschlossene Spiele werden automatisch gespeichert (sobald OpenLigaDB `matchIsFinished` meldet); alternativ kann der Admin das Ergebnis manuell eintragen — danach wird es nicht mehr überschrieben
 - **Provisorische Gruppen & Rangliste** — Während laufender Spiele werden Gruppentabellen und Rangliste live hochgerechnet (markiert mit `●` / `*`)
 - **Automatisches Bracket** — KO-Teilnehmer werden nach Gruppenabschluss automatisch eingetragen; Sieger werden durch den Baum weiterpropagiert

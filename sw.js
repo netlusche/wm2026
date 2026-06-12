@@ -1,4 +1,4 @@
-const CACHE = 'wm2026-v4';
+const CACHE = 'wm2026-v5';
 const BASE  = self.registration.scope.replace(/\/$/, '');
 const SHELL = ['', '/style.css', '/app.js', '/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'].map(p => BASE + (p || '/'));
 

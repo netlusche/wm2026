@@ -533,8 +533,8 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
   padding: 8px 14px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 12px;
   transition: background .15s;
 }
 .pred-cell:first-child { border-right: 1px solid rgba(255,255,255,.65); }

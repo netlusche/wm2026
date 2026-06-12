@@ -658,8 +658,8 @@ if ($method === 'GET' && $path === '/livescores') {
             continue;
         }
 
-        // Running match → LIVE badge
-        if (!$live['is_finished']) {
+        // Running match → LIVE badge (only if no manual result saved yet)
+        if (!$live['is_finished'] && $m['home_score'] === null) {
             $liveMatches[] = [
                 'match_id'   => (int)$m['id'],
                 'home_score' => $live['home_score'],
