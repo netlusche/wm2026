@@ -758,6 +758,7 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
 .standings-name.frank { color: var(--frank); }
 .standings-pts  { font-size: 2.8rem; font-weight: 800; line-height: 1; color: var(--text); }
 .standings-sub  { font-size: .72rem; color: var(--muted); margin-top: 6px; }
+.standings-tips { font-size: .68rem; color: var(--muted); margin-top: 4px; }
 .standings-crown { font-size: 1.4rem; margin-bottom: 6px; animation: sway 2.5s ease-in-out infinite; }
 
 @keyframes sway {

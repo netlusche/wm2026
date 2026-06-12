@@ -557,7 +557,14 @@ if ($method === 'GET' && $path === '/standings') {
             'frank_pts'  => $fP,
         ];
     }
-    jsonOut(['totals' => $totals, 'details' => $details]);
+    $totalMatches = (int)$db->query("SELECT COUNT(*) FROM matches")->fetchColumn();
+    $tipCounts = [];
+    foreach (['david', 'frank'] as $pl) {
+        $s = $db->prepare("SELECT COUNT(*) FROM predictions WHERE player=?");
+        $s->execute([$pl]);
+        $tipCounts[$pl] = (int)$s->fetchColumn();
+    }
+    jsonOut(['totals' => $totals, 'details' => $details, 'tip_counts' => $tipCounts, 'total_matches' => $totalMatches]);
 }
 
 // ─── POST /admin/change-password ──────────────────────────────────────────────

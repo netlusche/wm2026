@@ -260,19 +260,8 @@ function renderMatches(matches, container) {
     return;
   }
 
-  // Group by gruppe for group stage
-  const grouped = {};
-  matches.forEach(m => {
-    const key = m.gruppe || 'ko';
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(m);
-  });
-
-  Object.keys(grouped).sort().forEach(key => {
-    grouped[key].forEach((m, idx) => {
-      container.appendChild(renderMatchCard(m, idx));
-    });
-  });
+  const sorted = [...matches].sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff));
+  sorted.forEach((m, idx) => container.appendChild(renderMatchCard(m, idx)));
   updateCountdowns();
 }
 
@@ -581,7 +570,7 @@ async function loadRangliste() {
   container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted)">Lädt…</div>';
   const [data, live] = await Promise.all([api('api/standings'), api('api/livescores')]);
 
-  const { totals, details } = data;
+  const { totals, details, tip_counts, total_matches } = data;
   const disp = (live?.has_live && live?.provisional_totals) ? live.provisional_totals : totals;
   const suffix = live?.has_live ? '*' : '';
   const leader = disp.david > disp.frank ? 'david' : disp.frank > disp.david ? 'frank' : null;
@@ -593,12 +582,14 @@ async function loadRangliste() {
         <div class="standings-name david">David</div>
         <div class="standings-pts david">${disp.david}${suffix}</div>
         <div class="standings-sub">Punkte</div>
+        ${tip_counts ? `<div class="standings-tips">${tip_counts.david} / ${total_matches} Tipps</div>` : ''}
       </div>
       <div class="standings-player-card ${leader === 'frank' ? 'leader' : ''}">
         ${leader === 'frank' ? '<div class="standings-crown">👑</div>' : ''}
         <div class="standings-name frank">Frank</div>
         <div class="standings-pts frank">${disp.frank}${suffix}</div>
         <div class="standings-sub">Punkte</div>
+        ${tip_counts ? `<div class="standings-tips">${tip_counts.frank} / ${total_matches} Tipps</div>` : ''}
       </div>
     </div>`;
 
