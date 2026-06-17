@@ -664,7 +664,7 @@ async function loadRangliste() {
 function buildStats(details) {
   const s = {};
   ['david', 'frank'].forEach(p => {
-    s[p] = { exact: 0, gd: 0, tendency: 0, miss: 0, ko_exact: 0, ko_win: 0, ko_miss: 0, played: 0, ko_played: 0 };
+    s[p] = { exact: 0, gd: 0, tendency: 0, miss: 0, ko_exact: 0, ko_gd: 0, ko_win: 0, ko_miss: 0, played: 0, ko_played: 0 };
   });
   details.forEach(d => {
     const isKO = d.round !== 'gruppe';
@@ -680,6 +680,7 @@ function buildStats(details) {
       } else {
         s[p].ko_played++;
         if (pts === 3) s[p].ko_exact++;
+        else if (pts === 2) s[p].ko_gd++;
         else if (pts === 1) s[p].ko_win++;
         else s[p].ko_miss++;
       }
@@ -713,6 +714,7 @@ function renderStatCard(p, s) {
   if (s.ko_played > 0) {
     rows.push(`<div class="stat-section-label">KO-Runden (${s.ko_played} Spiele)</div>`);
     rows.push(`<div class="stat-row"><span>⚽ Exakt (3P)</span><strong>${s.ko_exact}</strong></div>`);
+    rows.push(`<div class="stat-row"><span>↔ Tordifferenz (2P)</span><strong>${s.ko_gd}</strong></div>`);
     rows.push(`<div class="stat-row"><span>✓ Richtiger Sieger (1P)</span><strong>${s.ko_win}</strong></div>`);
     rows.push(`<div class="stat-row"><span>✗ Daneben</span><strong>${s.ko_miss}</strong></div>`);
   }
@@ -966,6 +968,7 @@ function renderRegeln() {
         <h3><span class="icon">⚔️</span> KO-Runden</h3>
         <ul>
           <li><span class="pts">3P</span> Exaktes Endergebnis (inkl. Verlängerung / Elfmeter)</li>
+          <li><span class="pts">2P</span> Richtige Tordifferenz (z.B. 2:0 getippt, 3:1 gespielt)</li>
           <li><span class="pts">1P</span> Richtiger Sieger – kein Unentschieden möglich</li>
           <li><span class="pts pts-gray">0P</span> Falscher Sieger</li>
         </ul>

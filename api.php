@@ -233,7 +233,7 @@ function calcPoints(?array $pred, array $m): ?int {
     $rH = (int)$m['home_score']; $rA = (int)$m['away_score'];
     $pH = (int)$pred['home_score']; $pA = (int)$pred['away_score'];
     if ($pH === $rH && $pA === $rA) return 3;
-    if (!$isKO && ($pH - $pA) === ($rH - $rA)) return 2;
+    if (($pH - $pA) === ($rH - $rA)) return 2;
     $tend = fn($v) => $v > 0 ? 'H' : ($v < 0 ? 'A' : 'D');
     if ($tend($pH - $pA) === $tend($rH - $rA)) return 1;
     return 0;
