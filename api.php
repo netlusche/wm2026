@@ -337,50 +337,86 @@ function fillBestThirds(PDO $db): void {
 }
 
 function propagateKOWinners(PDO $db): void {
-    $pairs = [['r32','r16'],['r16','viertelfinale'],['viertelfinale','halbfinale']];
-    foreach ($pairs as [$from, $to]) {
-        $src  = $db->query("SELECT * FROM matches WHERE round='$from' ORDER BY kickoff,id")->fetchAll();
-        $dest = $db->query("SELECT * FROM matches WHERE round='$to'   ORDER BY kickoff,id")->fetchAll();
-        foreach ($src as $idx => $m) {
-            if ($m['home_score'] === null) continue;
-            $hS = (int)$m['home_score']; $aS = (int)$m['away_score'];
-            if ($hS > $aS) $winner = $m['home_team'];
-            elseif ($aS > $hS) $winner = $m['away_team'];
-            elseif ($m['penalty_winner'] === 'home') $winner = $m['home_team'];
-            elseif ($m['penalty_winner'] === 'away') $winner = $m['away_team'];
-            else $winner = null;
-            if (!$winner) continue;
-            $dIdx = (int)floor($idx / 2);
-            $side = $idx % 2 === 0 ? 'home' : 'away';
-            if (!isset($dest[$dIdx])) continue;
-            $dm = $dest[$dIdx];
-            if ($side === 'home' && isPlaceholder($dm['home_team']))
-                $db->prepare("UPDATE matches SET home_team=? WHERE id=?")->execute([$winner, $dm['id']]);
-            if ($side === 'away' && isPlaceholder($dm['away_team']))
-                $db->prepare("UPDATE matches SET away_team=? WHERE id=?")->execute([$winner, $dm['id']]);
-        }
-    }
-    // Halbfinale → Finale + Platz 3
-    $hf     = $db->query("SELECT * FROM matches WHERE round='halbfinale' ORDER BY kickoff,id")->fetchAll();
-    $finale = $db->query("SELECT * FROM matches WHERE round='finale'     ORDER BY kickoff,id")->fetchAll();
-    $platz3 = $db->query("SELECT * FROM matches WHERE round='platz3'     ORDER BY kickoff,id")->fetchAll();
-    foreach ($hf as $idx => $m) {
-        if ($m['home_score'] === null) continue;
+    // Explicit bracket map (FIFA WM 2026, DB match IDs).
+    // r32 DB-ID → [r16 DB-ID, home|away]
+    $r32ToR16 = [
+        73 => [90,'home'], 74 => [91,'home'], 75 => [89,'home'],
+        76 => [90,'away'], 77 => [91,'away'], 78 => [89,'away'],
+        79 => [92,'home'], 80 => [92,'away'],
+        81 => [94,'away'], 82 => [94,'home'],
+        83 => [93,'home'], 84 => [93,'away'],
+        85 => [96,'home'], 86 => [95,'away'],
+        87 => [95,'home'], 88 => [96,'away'],
+    ];
+    // r16 DB-ID → [QF DB-ID, home|away]
+    $r16ToQF = [
+        89 => [97,'home'], 90 => [97,'away'],
+        91 => [99,'home'], 92 => [99,'away'],
+        93 => [98,'home'], 94 => [98,'away'],
+        95 => [100,'home'], 96 => [100,'away'],
+    ];
+    // QF DB-ID → [SF DB-ID, home|away]
+    $qfToSF = [
+        97 => [101,'home'], 98 => [101,'away'],
+        99 => [102,'home'], 100 => [102,'away'],
+    ];
+
+    $getWinner = function(array $m): ?string {
+        if ($m['home_score'] === null) return null;
         $hS = (int)$m['home_score']; $aS = (int)$m['away_score'];
-        if ($hS > $aS)                       { $winner = $m['home_team']; $loser = $m['away_team']; }
-        elseif ($aS > $hS)                   { $winner = $m['away_team']; $loser = $m['home_team']; }
-        elseif ($m['penalty_winner']==='home'){ $winner = $m['home_team']; $loser = $m['away_team']; }
-        elseif ($m['penalty_winner']==='away'){ $winner = $m['away_team']; $loser = $m['home_team']; }
-        else { $winner = null; $loser = null; }
-        $side   = $idx === 0 ? 'home' : 'away';
-        if ($winner && isset($finale[0])) {
-            if ($side==='home' && isPlaceholder($finale[0]['home_team'])) $db->prepare("UPDATE matches SET home_team=? WHERE id=?")->execute([$winner,$finale[0]['id']]);
-            if ($side==='away' && isPlaceholder($finale[0]['away_team'])) $db->prepare("UPDATE matches SET away_team=? WHERE id=?")->execute([$winner,$finale[0]['id']]);
-        }
-        if ($loser && isset($platz3[0])) {
-            if ($side==='home' && isPlaceholder($platz3[0]['home_team'])) $db->prepare("UPDATE matches SET home_team=? WHERE id=?")->execute([$loser,$platz3[0]['id']]);
-            if ($side==='away' && isPlaceholder($platz3[0]['away_team'])) $db->prepare("UPDATE matches SET away_team=? WHERE id=?")->execute([$loser,$platz3[0]['id']]);
-        }
+        if ($hS > $aS) return $m['home_team'];
+        if ($aS > $hS) return $m['away_team'];
+        if ($m['penalty_winner'] === 'home') return $m['home_team'];
+        if ($m['penalty_winner'] === 'away') return $m['away_team'];
+        return null;
+    };
+
+    $setSlot = function(int $destId, string $side, string $team) use ($db): void {
+        $m = $db->prepare("SELECT home_team, away_team FROM matches WHERE id=?")->execute([$destId]) ? null : null;
+        $row = $db->query("SELECT home_team, away_team FROM matches WHERE id=$destId")->fetch();
+        if (!$row) return;
+        if ($side === 'home' && isPlaceholder($row['home_team']))
+            $db->prepare("UPDATE matches SET home_team=? WHERE id=?")->execute([$team, $destId]);
+        if ($side === 'away' && isPlaceholder($row['away_team']))
+            $db->prepare("UPDATE matches SET away_team=? WHERE id=?")->execute([$team, $destId]);
+    };
+
+    // r32 → r16
+    foreach ($r32ToR16 as $srcId => [$destId, $side]) {
+        $m = $db->query("SELECT * FROM matches WHERE id=$srcId")->fetch();
+        if (!$m) continue;
+        $winner = $getWinner($m);
+        if ($winner) $setSlot($destId, $side, $winner);
+    }
+    // r16 → QF
+    foreach ($r16ToQF as $srcId => [$destId, $side]) {
+        $m = $db->query("SELECT * FROM matches WHERE id=$srcId")->fetch();
+        if (!$m) continue;
+        $winner = $getWinner($m);
+        if ($winner) $setSlot($destId, $side, $winner);
+    }
+    // QF → SF
+    foreach ($qfToSF as $srcId => [$destId, $side]) {
+        $m = $db->query("SELECT * FROM matches WHERE id=$srcId")->fetch();
+        if (!$m) continue;
+        $winner = $getWinner($m);
+        if ($winner) $setSlot($destId, $side, $winner);
+    }
+    // SF → Finale + Platz 3
+    $sfMap  = [101 => 'home', 102 => 'away'];
+    $finale = $db->query("SELECT * FROM matches WHERE round='finale'")->fetch();
+    $platz3 = $db->query("SELECT * FROM matches WHERE round='platz3'")->fetch();
+    foreach ($sfMap as $srcId => $side) {
+        $m = $db->query("SELECT * FROM matches WHERE id=$srcId")->fetch();
+        if (!$m || $m['home_score'] === null) continue;
+        $hS = (int)$m['home_score']; $aS = (int)$m['away_score'];
+        if ($hS > $aS)                        { $winner = $m['home_team']; $loser = $m['away_team']; }
+        elseif ($aS > $hS)                    { $winner = $m['away_team']; $loser = $m['home_team']; }
+        elseif ($m['penalty_winner']==='home') { $winner = $m['home_team']; $loser = $m['away_team']; }
+        elseif ($m['penalty_winner']==='away') { $winner = $m['away_team']; $loser = $m['home_team']; }
+        else { continue; }
+        if ($finale) $setSlot((int)$finale['id'], $side, $winner);
+        if ($platz3) $setSlot((int)$platz3['id'], $side, $loser);
     }
 }
 
