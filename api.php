@@ -297,10 +297,19 @@ function isGroupComplete(PDO $db, string $gruppe): bool {
     return $total > 0 && $total === $done;
 }
 
+// Returns true once the last spieltag for this group has at least one result.
+// Used to fill r32 slots provisionally while the final matchday is still running.
+function isGroupFillable(PDO $db, string $gruppe): bool {
+    if (isGroupComplete($db, $gruppe)) return true;
+    $s = $db->prepare("SELECT COUNT(*) FROM matches WHERE round='gruppe' AND gruppe=? AND spieltag=3 AND home_score IS NOT NULL");
+    $s->execute([$gruppe]);
+    return (int)$s->fetchColumn() > 0;
+}
+
 function fillGroupsIntoR32(PDO $db): void {
     $r32 = $db->query("SELECT id,home_team,away_team FROM matches WHERE round='r32'")->fetchAll();
     foreach (str_split('ABCDEFGHIJKL') as $g) {
-        if (!isGroupComplete($db, $g)) continue;
+        if (!isGroupFillable($db, $g)) continue;
         $standing = computeGroupTable($db, $g);
         if (count($standing) < 2) continue;
         $winner = $standing[0]['team']; $runner = $standing[1]['team'];
