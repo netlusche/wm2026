@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=11" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
@@ -130,6 +130,10 @@
       <a class="phrase-newtab" href="https://plandoo.de/phrasendrescher/" target="_blank" rel="noopener">↗ Zum Phrasendrescher</a>
       <button class="phrase-reload-btn" onclick="reloadPhraseFrame()" title="Neu laden">↺</button>
       <button class="phrase-close" onclick="closePhraseModal()">✕</button>
+      <label class="phrase-autoshow-toggle" onclick="event.stopPropagation()">
+        <input type="checkbox" id="phrase-autoshow" onchange="togglePhraseAutoshow(this.checked)" />
+        Beim Start anzeigen
+      </label>
       <div id="phrase-loader" class="phrase-loader">
         <div class="phrase-spinner"></div>
       </div>

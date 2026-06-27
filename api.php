@@ -407,7 +407,10 @@ if (in_array($method, ['POST','PUT','DELETE','PATCH'])) {
 
 if ($method === 'GET' && $path === '/nav') {
     $rows = $db->query("
-        SELECT round, spieltag, COUNT(*) as match_count
+        SELECT round, spieltag, COUNT(*) as match_count,
+               MIN(kickoff) as first_kickoff,
+               MAX(kickoff) as last_kickoff,
+               SUM(CASE WHEN home_score IS NOT NULL THEN 1 ELSE 0 END) as finished_count
         FROM matches
         GROUP BY round, spieltag
         ORDER BY
@@ -421,7 +424,12 @@ if ($method === 'GET' && $path === '/nav') {
             WHEN 'finale'        THEN 7
           END, spieltag
     ")->fetchAll();
-    foreach ($rows as &$r) { $r['match_count'] = (int)$r['match_count']; if ($r['spieltag'] !== null) $r['spieltag'] = (int)$r['spieltag']; }
+    foreach ($rows as &$r) {
+        $r['match_count']    = (int)$r['match_count'];
+        $r['finished_count'] = (int)$r['finished_count'];
+        $r['all_finished']   = $r['finished_count'] === $r['match_count'];
+        if ($r['spieltag'] !== null) $r['spieltag'] = (int)$r['spieltag'];
+    }
     jsonOut($rows);
 }
 

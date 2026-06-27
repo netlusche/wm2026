@@ -73,7 +73,7 @@ async function init() {
   await loadScores();
   startLivePolling();
   startCountdownTick();
-  if (player && player !== 'admin') showPhraseModal();
+  if (player && player !== 'admin' && localStorage.getItem('phrase_autoshow') !== '0') showPhraseModal();
 }
 
 /* ── Player Selection ───────────────────────────────────────────── */
@@ -100,7 +100,7 @@ function selectPlayer(p) {
   applyPlayer();
   hideModal();
   if (activeTab) loadMatches(activeTab);
-  setTimeout(showPhraseModal, 150);
+  if (localStorage.getItem('phrase_autoshow') !== '0') setTimeout(showPhraseModal, 150);
 }
 
 
@@ -173,6 +173,12 @@ function renderSpieltageNav() {
   const container = document.getElementById('spieltag-tabs');
   container.innerHTML = '';
 
+  // Find the first tab that isn't fully finished yet; fall back to last tab
+  const autoIdx = (() => {
+    const idx = navItems.findIndex(item => !item.all_finished);
+    return idx >= 0 ? idx : navItems.length - 1;
+  })();
+
   navItems.forEach((item, i) => {
     const btn = document.createElement('button');
     btn.className = 'stab';
@@ -185,10 +191,11 @@ function renderSpieltageNav() {
     };
     container.appendChild(btn);
 
-    if (i === 0) {
+    if (i === autoIdx) {
       btn.classList.add('active');
       activeTab = item;
       loadMatches(item);
+      requestAnimationFrame(() => btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }));
     }
   });
 
@@ -750,7 +757,14 @@ function reloadPhraseFrame() {
   if (frame)  { frame.style.opacity = '0'; frame.src = 'https://plandoo.de/phrasendrescher/'; }
 }
 
+function togglePhraseAutoshow(checked) {
+  localStorage.setItem('phrase_autoshow', checked ? '1' : '0');
+}
+
 function showPhraseModal() {
+  const cb = document.getElementById('phrase-autoshow');
+  if (cb) cb.checked = localStorage.getItem('phrase_autoshow') !== '0';
+
   const overlay = document.getElementById('phrase-overlay');
   const modal   = document.getElementById('phrase-modal');
   const btn     = document.getElementById('phrase-btn');

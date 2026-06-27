@@ -960,6 +960,22 @@ main { max-width: 960px; margin: 0 auto; padding: 0 12px 80px; position: relativ
   justify-content: center;
   line-height: 1;
 }
+.phrase-autoshow-toggle {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .75rem;
+  color: rgba(255,255,255,.7);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+.phrase-autoshow-toggle input { cursor: pointer; accent-color: #fff; }
 .phrase-loader {
   position: absolute;
   inset: 0;
